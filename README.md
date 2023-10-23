@@ -1,5 +1,5 @@
 # pel
 
-a language based on an idea i had to teach people how to code
+a language based on an idea i had about how to teach people to code
 
 'pel' stands for pedagogical experiment language
