@@ -2,6 +2,8 @@ use num_bigint::BigInt;
 
 use std::fmt::Display;
 
+use crate::io::Span;
+
 #[derive(Eq, PartialEq, Hash, Clone)]
 pub(crate) struct VarName(pub(crate) String);
 impl Display for VarName {
@@ -32,7 +34,11 @@ pub(crate) enum ShortCircuitOp {
     Or,
     And,
 }
-pub(crate) enum Expr {
+pub(crate) struct Expr<'file> {
+    pub(crate) kind: ExprKind<'file>,
+    pub(crate) span: Span<'file>,
+}
+pub(crate) enum ExprKind<'file> {
     Var(VarName),
 
     Int(BigInt),
@@ -40,22 +46,27 @@ pub(crate) enum Expr {
     String(String),
     Bool(bool),
 
-    Parenthesized(Box<Expr>),
+    Parenthesized(Box<Expr<'file>>),
 
-    Call(Box<Expr>, Vec<Expr>),
+    Call(Box<Expr<'file>>, Vec<Expr<'file>>),
 
-    ShortCircuitOp(Box<Expr>, ShortCircuitOp, Box<Expr>),
-    BinaryOp(Box<Expr>, BinaryOp, Box<Expr>),
-    UnaryOp(UnaryOp, Box<Expr>),
+    ShortCircuitOp(Box<Expr<'file>>, ShortCircuitOp, Box<Expr<'file>>),
+    BinaryOp(Box<Expr<'file>>, BinaryOp, Box<Expr<'file>>),
+    UnaryOp(UnaryOp, Box<Expr<'file>>),
 }
 
-pub(crate) enum Statement {
-    Block(Vec<Statement>),
-    Expr(Expr),
-    Print(Expr),
-    Return(Expr),
-    MakeVar(VarName, Option<Expr>),
-    AssignVar(VarName, Expr),
-    If(Expr, Box<Statement>, Option<Box<Statement>>),
-    While(Expr, Box<Statement>),
+pub(crate) struct Stmt<'file> {
+    pub(crate) kind: StmtKind<'file>,
+    pub(crate) span: Span<'file>,
+}
+
+pub(crate) enum StmtKind<'file> {
+    Block(Vec<Stmt<'file>>),
+    Expr(Expr<'file>),
+    Print(Expr<'file>),
+    Return(Expr<'file>),
+    MakeVar(VarName, Option<Expr<'file>>),
+    AssignVar(VarName, Expr<'file>),
+    If(Expr<'file>, Box<Stmt<'file>>, Option<Box<Stmt<'file>>>),
+    While(Expr<'file>, Box<Stmt<'file>>),
 }

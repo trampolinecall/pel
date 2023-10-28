@@ -1,13 +1,11 @@
 use crate::{
     error::{Error, ErrorReportedPromise, Report},
-    io::Located,
-    lang::{Expr, Statement, VarName},
+    io::{Located, Span},
+    lang::{Expr, ExprKind, Stmt, StmtKind, VarName},
     parser::{expr::expression, parser::Parser, token::Token, SyntaxOptions},
 };
 
-// TODO: semicolons
-
-pub(super) fn statement(parser: &mut Parser, syntax_options: SyntaxOptions) -> Result<Statement, ErrorReportedPromise> {
+pub(super) fn statement<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions) -> Result<Stmt<'file>, ErrorReportedPromise> {
     let tok = parser.next();
     match tok.1 {
         Token::OBrace => finish_block(parser, syntax_options, tok),
@@ -26,30 +24,32 @@ pub(super) fn statement(parser: &mut Parser, syntax_options: SyntaxOptions) -> R
             let expr = expression(parser, syntax_options)?;
             if let Some(()) = parser.maybe_consume(|tok| matches!(tok.1, Token::Equal).then_some(())) {
                 let rhs = expression(parser, syntax_options)?;
-                make_assignment(expr, rhs)
+                let total_span = expr.span + rhs.span;
+                make_assignment(expr, rhs, total_span)
             } else {
-                Ok(Statement::Expr(expr))
+                let expr_span = expr.span;
+                Ok(Stmt { kind: StmtKind::Expr(expr), span: expr_span })
             }
         }
     }
 }
 
-fn finish_block(parser: &mut Parser, syntax_options: SyntaxOptions, obrace_tok: Located<Token>) -> Result<Statement, ErrorReportedPromise> {
+fn finish_block<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions, obrace_tok: Located<'file, Token>) -> Result<Stmt<'file>, ErrorReportedPromise> {
     let mut statements = Vec::new();
 
     while !parser.peek_matches(|tok| matches!(tok, Token::CBrace | Token::Eof)) {
         statements.push(statement(parser, syntax_options)?);
     }
 
-    parser.consume(|tok| match tok.1 {
-        Token::CBrace => Ok(tok),
+    let cbrace_sp = parser.consume(|tok| match tok.1 {
+        Token::CBrace => Ok(tok.0),
         _ => Err(Error::new(Some(tok.0), "expected '}' to close block".to_string()).report()),
     })?;
 
-    Ok(Statement::Block(statements))
+    Ok(Stmt { kind: StmtKind::Block(statements), span: obrace_tok.0 + cbrace_sp })
 }
 
-fn if_statement(parser: &mut Parser, syntax_options: SyntaxOptions, if_tok: Located<Token>) -> Result<Statement, ErrorReportedPromise> {
+fn if_statement<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions, if_tok: Located<'file, Token>) -> Result<Stmt<'file>, ErrorReportedPromise> {
     let cond = expression(parser, syntax_options)?;
 
     let obrace = parser.consume(|tok| match tok.1 {
@@ -77,15 +77,17 @@ fn if_statement(parser: &mut Parser, syntax_options: SyntaxOptions, if_tok: Loca
         None
     };
 
-    Ok(Statement::If(cond, Box::new(true_branch), false_branch.map(Box::new)))
+    let total_span = if_tok.0 + false_branch.as_ref().map(|branch| branch.span).unwrap_or(true_branch.span);
+
+    Ok(Stmt { kind: StmtKind::If(cond, Box::new(true_branch), false_branch.map(Box::new)), span: total_span })
 }
 
-fn for_statement(parser: &mut Parser, syntax_options: SyntaxOptions, for_tok: Located<Token>) -> Result<Statement, ErrorReportedPromise> {
+fn for_statement<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions, for_tok: Located<Token>) -> Result<Stmt<'file>, ErrorReportedPromise> {
     // TODO: decide about these
     todo!()
 }
 
-fn while_statement(parser: &mut Parser, syntax_options: SyntaxOptions, while_tok: Located<Token>) -> Result<Statement, ErrorReportedPromise> {
+fn while_statement<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions, while_tok: Located<'file, Token>) -> Result<Stmt<'file>, ErrorReportedPromise> {
     let cond = expression(parser, syntax_options)?;
 
     let obrace = parser.consume(|tok| match tok.1 {
@@ -95,18 +97,20 @@ fn while_statement(parser: &mut Parser, syntax_options: SyntaxOptions, while_tok
 
     let body = finish_block(parser, syntax_options, obrace)?;
 
-    Ok(Statement::While(cond, Box::new(body)))
+    let total_span = while_tok.0 + body.span;
+
+    Ok(Stmt { kind: StmtKind::While(cond, Box::new(body)), span: total_span })
 }
 
-fn break_statement(parser: &mut Parser, syntax_options: SyntaxOptions, break_tok: Located<Token>) -> Result<Statement, ErrorReportedPromise> {
+fn break_statement<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions, break_tok: Located<Token>) -> Result<Stmt<'file>, ErrorReportedPromise> {
     todo!()
 }
 
-fn continue_statement(parser: &mut Parser, syntax_options: SyntaxOptions, continue_tok: Located<Token>) -> Result<Statement, ErrorReportedPromise> {
+fn continue_statement<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions, continue_tok: Located<Token>) -> Result<Stmt<'file>, ErrorReportedPromise> {
     todo!()
 }
 
-fn var_statement(parser: &mut Parser, syntax_options: SyntaxOptions, var_tok: Located<Token>) -> Result<Statement, ErrorReportedPromise> {
+fn var_statement<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions, var_tok: Located<'file, Token>) -> Result<Stmt<'file>, ErrorReportedPromise> {
     let name = parser.consume(|tok| match tok.1 {
         Token::Identifier(name) => Ok(name),
         _ => Err(Error::new(Some(tok.0), "expected variable name after 'var'".to_string()).report()),
@@ -114,37 +118,37 @@ fn var_statement(parser: &mut Parser, syntax_options: SyntaxOptions, var_tok: Lo
 
     let rhs = if let Some(()) = parser.maybe_consume(|tok| matches!(tok.1, Token::Equal).then_some(())) { Some(expression(parser, syntax_options)?) } else { None };
 
-    parser.consume(|tok| match tok.1 {
-        Token::Semicolon => Ok(()),
+    let semi_sp = parser.consume(|tok| match tok.1 {
+        Token::Semicolon => Ok(tok.0),
         _ => Err(Error::new(Some(tok.0), "expected ';' after 'var' statement".to_string()).report()),
     })?;
 
-    Ok(Statement::MakeVar(VarName(name), rhs))
+    Ok(Stmt { kind: StmtKind::MakeVar(VarName(name), rhs), span: var_tok.0 + semi_sp })
 }
 
-fn return_statement(parser: &mut Parser, syntax_options: SyntaxOptions, peek: Located<Token>) -> Result<Statement, ErrorReportedPromise> {
+fn return_statement<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions, return_tok: Located<'file, Token>) -> Result<Stmt<'file>, ErrorReportedPromise> {
     let expr = expression(parser, syntax_options)?;
 
-    parser.consume(|tok| match tok.1 {
-        Token::Semicolon => Ok(()),
+    let semi_sp = parser.consume(|tok| match tok.1 {
+        Token::Semicolon => Ok(tok.0),
         _ => Err(Error::new(Some(tok.0), "expected ';' after 'return' statement".to_string()).report()),
     })?;
 
-    Ok(Statement::Return(expr))
+    Ok(Stmt { kind: StmtKind::Return(expr), span: return_tok.0 + semi_sp })
 }
 
-fn print_statement(parser: &mut Parser, syntax_options: SyntaxOptions, print_tok: Located<Token>) -> Result<Statement, ErrorReportedPromise> {
+fn print_statement<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions, print_tok: Located<'file, Token>) -> Result<Stmt<'file>, ErrorReportedPromise> {
     let expr = expression(parser, syntax_options)?;
 
-    parser.consume(|tok| match tok.1 {
-        Token::Semicolon => Ok(()),
+    let semi_sp = parser.consume(|tok| match tok.1 {
+        Token::Semicolon => Ok(tok.0),
         _ => Err(Error::new(Some(tok.0), "expected ';' after 'print' statement".to_string()).report()),
     })?;
 
-    Ok(Statement::Print(expr))
+    Ok(Stmt { kind: StmtKind::Print(expr), span: print_tok.0 + semi_sp })
 }
 
-fn assign_statement(parser: &mut Parser, syntax_options: SyntaxOptions, assign_tok: Located<Token>) -> Result<Statement, ErrorReportedPromise> {
+fn assign_statement<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions, assign_tok: Located<'file, Token>) -> Result<Stmt<'file>, ErrorReportedPromise> {
     let value = expression(parser, syntax_options)?;
 
     parser.consume(|tok| match tok.1 {
@@ -154,15 +158,15 @@ fn assign_statement(parser: &mut Parser, syntax_options: SyntaxOptions, assign_t
 
     let target = expression(parser, syntax_options)?;
 
-    parser.consume(|tok| match tok.1 {
-        Token::Semicolon => Ok(()),
+    let semi_sp = parser.consume(|tok| match tok.1 {
+        Token::Semicolon => Ok(tok.0),
         _ => Err(Error::new(Some(tok.0), "expected ';' after 'assign' statement".to_string()).report()),
     })?;
 
-    make_assignment(target, value)
+    make_assignment(target, value, assign_tok.0 + semi_sp)
 }
 
-fn make_var_statement(parser: &mut Parser, syntax_options: SyntaxOptions, make_tok: Located<Token>) -> Result<Statement, ErrorReportedPromise> {
+fn make_var_statement<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions, make_tok: Located<'file, Token>) -> Result<Stmt<'file>, ErrorReportedPromise> {
     parser.consume(|tok| match tok.1 {
         Token::Var => Ok(()),
         _ => Err(Error::new(Some(tok.0), "expected 'var' after 'make'".to_string()).report()),
@@ -173,17 +177,17 @@ fn make_var_statement(parser: &mut Parser, syntax_options: SyntaxOptions, make_t
         _ => Err(Error::new(Some(tok.0), "expected variable name after 'var'".to_string()).report()),
     })?;
 
-    parser.consume(|tok| match tok.1 {
-        Token::Semicolon => Ok(()),
+    let semi_sp = parser.consume(|tok| match tok.1 {
+        Token::Semicolon => Ok(tok.0),
         _ => Err(Error::new(Some(tok.0), "expected ';' after 'make var' statement".to_string()).report()),
     })?;
 
-    Ok(Statement::MakeVar(VarName(name), None))
+    Ok(Stmt { kind: StmtKind::MakeVar(VarName(name), None), span: make_tok.0 + semi_sp })
 }
 
-fn make_assignment(target: Expr, value: Expr) -> Result<Statement, ErrorReportedPromise> {
-    match target {
-        Expr::Var(vn) => Ok(Statement::AssignVar(vn, value)),
-        _ => Err(Error::new(Some(todo!("expr.span")), "invalid assignment target".to_string()).report()),
+fn make_assignment<'file>(target: Expr<'file>, value: Expr<'file>, span: Span<'file>) -> Result<Stmt<'file>, ErrorReportedPromise> {
+    match target.kind {
+        ExprKind::Var(vn) => Ok(Stmt { kind: StmtKind::AssignVar(vn, value), span }),
+        _ => Err(Error::new(Some(target.span), "invalid assignment target".to_string()).report()),
     }
 }

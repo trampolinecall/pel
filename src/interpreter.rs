@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 
 use crate::{
     error::ErrorReportedPromise,
-    lang::{Expr, VarName, Statement},
+    lang::{Expr, VarName, Stmt},
 };
 
 #[derive(Clone)]

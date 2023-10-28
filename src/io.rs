@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, ops::Add};
 
 pub(crate) struct File {
     pub(crate) name: String,
@@ -7,7 +7,7 @@ pub(crate) struct File {
 
 impl File {
     pub(crate) fn eof_span(&self) -> Span<'_> {
-        Span { file: self, start: self.source.len(), length: 0 }
+        Span { file: self, start: self.source.len(), end: self.source.len() }
     }
 }
 
@@ -21,15 +21,21 @@ pub(crate) struct Location<'file> {
 pub(crate) struct Span<'file> {
     file: &'file File,
     start: usize,
-    length: usize,
+    end: usize,
 }
 impl Span<'_> {
-    pub(crate) fn new(file: &File, start: usize, length: usize) -> Span<'_> {
-        Span { file, start, length }
-    }
-
     pub(crate) fn new_from_start_and_end(file: &File, start: usize, end: usize) -> Span<'_> {
-        Span { file, start, length: end - start }
+        assert!(start <= end, "cannot have span that ends earlier than it starts");
+        Span { file, start, end }
+    }
+}
+
+impl<'a> Add for Span<'a> {
+    type Output = Span<'a>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        assert!(std::ptr::eq(self.file, rhs.file), "cannot join two spans from different files");
+        Span { file: self.file, start: std::cmp::min(self.start, rhs.start), end: std::cmp::max(self.end, rhs.end) }
     }
 }
 
@@ -45,7 +51,7 @@ impl Display for Location<'_> {
 impl Display for Span<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let (start_line, start_col) = get_line_col(self.file, self.start);
-        let (end_line, end_col) = get_line_col(self.file, self.start + self.length);
+        let (end_line, end_col) = get_line_col(self.file, self.end);
 
         if start_line == end_line {
             if start_col == end_col {

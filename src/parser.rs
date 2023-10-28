@@ -1,7 +1,7 @@
 use crate::{
     error::{Error, ErrorReportedPromise, Report},
     io::File,
-    lang::{Expr, Statement},
+    lang::{Expr, Stmt},
     parser::token::Token,
 };
 
@@ -29,7 +29,7 @@ mod lexer;
 mod parser;
 
 mod expr;
-mod statement;
+mod stmt;
 
 pub(crate) fn parse_expr(file: &File, syntax_options: SyntaxOptions) -> Result<Expr, ErrorReportedPromise> {
     let mut parser = parser::Parser::new(lexer::Lexer::new(file));
@@ -41,12 +41,11 @@ pub(crate) fn parse_expr(file: &File, syntax_options: SyntaxOptions) -> Result<E
     expr
 }
 
-pub(crate) fn parse_statements(file: &File, syntax_options: SyntaxOptions) -> Result<Vec<Statement>, ErrorReportedPromise> {
+pub(crate) fn parse_statements(file: &File, syntax_options: SyntaxOptions) -> Result<Vec<Stmt>, ErrorReportedPromise> {
     let mut parser = parser::Parser::new(lexer::Lexer::new(file));
     let mut statements = Vec::new();
     while !parser.peek_matches(|tok| matches!(tok, Token::Eof)) {
-        statements.push(
-    statement::statement(&mut parser, syntax_options)?);
+        statements.push(stmt::statement(&mut parser, syntax_options)?);
         // TODO: panic mode error recovery?
     }
 
