@@ -1,0 +1,163 @@
+digraph G {
+	graph [layout=dot rankdir=LR]
+
+    subgraph cluster_static {
+        label="static checking"
+        "static typing"
+        "lexical scope"
+        "initialization checking"
+    }
+
+    subgraph cluster_string {
+        label="string"
+        "string"
+        "string concatenation"
+        "substring"
+        "string indexing"
+    }
+
+    subgraph cluster_loops {
+        label="loops"
+        while
+        break
+        "infinite loops"
+        continue
+
+        for
+        foreach
+    }
+
+    subgraph cluster_functions {
+        label = "functions"
+        procedures
+        functions
+        "lambdas"
+    }
+
+    subgraph cluster_expressions {
+        label = "expressions"
+        "numbers and booleans"
+        "arithmetic exprs"
+        "comparison exprs"
+        "boolean logic"
+    }
+
+    subgraph cluster_lists {
+        label = "lists"
+        "lists"
+        "list indexing"
+        "linked lists"
+    }
+
+    subgraph cluster_maps {
+        label = "maps"
+        "maps"
+        "map item access"
+    }
+
+    subgraph cluster_binary_tree {
+        label = "binary trees"
+        "binary tree"
+    }
+
+    subgraph cluster_variables {
+        label = "variables"
+
+        "make variables"
+        "variable exprs"
+        "assign variables"
+        "non-kw variable decl syntax"
+        "non-kw assignment syntax"
+    }
+
+    subgraph cluster_print {
+        label = "print"
+        print
+        "print function"
+        "handles"
+    }
+
+    subgraph cluster_if {
+        label = "if"
+        if
+        else
+        "if else"
+    }
+
+    subgraph cluster_oo_type_system {
+        label = "oo type system"
+        "class and instance"
+        "fields and methods"
+        "interface and implements"
+        "inheritence"
+    }
+
+    "numbers and booleans"
+    "arithmetic exprs" -> "numbers and booleans"
+    "boolean logic" -> "numbers and booleans"
+
+    stmts [label = "statements (expression statements)"]
+    stmts -> "numbers and booleans"
+
+    "variable exprs" -> "make variables"
+    "make variables" -> stmts
+    "assign variables" -> "make variables"
+    "non-kw assignment syntax" -> "assign variables"
+    "non-kw variable decl syntax" -> "make variables"
+
+    print -> stmts
+    "print function" -> procedures
+    "print function" -> print
+    "handles" -> "print function"
+
+    procedures -> "lexical scope"
+    functions -> procedures
+    "lambdas" -> "return values"
+    "lambdas" -> functions
+
+    "initialization checking" -> "lexical scope"
+
+    "class and instance" -> "static typing"
+    "fields and methods" -> "class and instance"
+    "fields and methods" -> "return values"
+    "interface and implements" -> "fields and methods"
+    "inheritence" -> "fields and methods"
+
+    blocks -> stmts
+
+    if -> blocks
+    if -> "boolean logic"
+    else -> if
+    "if else" -> else
+    "if else" -> if
+
+    "infinite loops" -> blocks
+    "lexical scope" -> blocks
+    "lexical scope" -> "non-kw variable decl syntax"
+    "static typing" -> "lexical scope"
+
+    while -> "infinite loops"
+    break -> "infinite loops"
+    "continue" -> while
+    for -> while
+    foreach -> lists
+    foreach -> for
+    while -> "boolean logic"
+
+    "comparison exprs" -> "numbers and booleans"
+
+    string -> "numbers and booleans"
+    "string concatenation" -> string
+    "substring" -> string
+    "string indexing" -> string
+
+    lists -> "numbers and booleans"
+    "list indexing" -> lists
+
+    "linked lists" -> "lists"
+    "linked lists" -> "class and instance"
+    "binary tree" -> "linked lists"
+
+    maps -> "numbers and booleans"
+    "map item access" -> maps
+}
