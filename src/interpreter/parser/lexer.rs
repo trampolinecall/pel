@@ -2,8 +2,8 @@ use std::{iter::Peekable, str::CharIndices};
 
 use crate::{
     error::{Error, ErrorReportedPromise, Report},
-    io::{File, Located, Span},
-    parser::token::Token,
+    source::{File, Located, Span},
+    interpreter::parser::token::Token,
 };
 
 enum LexError<'file> {

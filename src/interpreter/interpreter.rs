@@ -3,8 +3,8 @@ use std::{collections::HashMap, fmt::Display};
 use num_bigint::BigInt;
 
 use crate::{
-    error::ErrorReportedPromise,
-    lang::{Expr, VarName, Stmt},
+    interpreter::lang::{Stmt, VarName},
+    visualizer::{graphics, view::View, widgets::test_rect::TestRect},
 };
 
 #[derive(Clone)]
@@ -29,10 +29,22 @@ impl Display for Value {
 }
 
 #[derive(Default)]
-struct InterpreterState {
+pub(crate) struct Interpreter<'file> {
+    stmts: Vec<Stmt<'file>>,
     vars: HashMap<VarName, Value>,
+}
+impl<'file> Interpreter<'file> {
+    pub(crate) fn new(stmts: Vec<Stmt<'file>>) -> Interpreter<'file> {
+        Interpreter { stmts, vars: HashMap::new() }
+    }
+}
 
-    cur_instr: usize,
+impl View for Interpreter<'_> {
+    type Result = TestRect;
+
+    fn to_widget(&self) -> Self::Result {
+        TestRect::new(graphics::Color::RED, (100.0, 100.0).into()) // TODO
+    }
 }
 
 /*

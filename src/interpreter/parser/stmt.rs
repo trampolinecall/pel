@@ -1,8 +1,8 @@
 use crate::{
     error::{Error, ErrorReportedPromise, Report},
-    io::{Located, Span},
-    lang::{Expr, ExprKind, Stmt, StmtKind, VarName},
-    parser::{expr::expression, parser::Parser, token::Token, SyntaxOptions},
+    source::{Located, Span},
+    interpreter::lang::{Expr, ExprKind, Stmt, StmtKind, VarName},
+    interpreter::parser::{expr::expression, parser::Parser, token::Token, SyntaxOptions},
 };
 
 pub(super) fn statement<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions) -> Result<Stmt<'file>, ErrorReportedPromise> {

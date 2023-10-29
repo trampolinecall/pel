@@ -1,4 +1,4 @@
-use crate::io::Span;
+use crate::source::Span;
 
 pub struct ErrorReportedPromise(());
 

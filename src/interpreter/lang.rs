@@ -2,7 +2,7 @@ use num_bigint::BigInt;
 
 use std::fmt::Display;
 
-use crate::io::Span;
+use crate::source::Span;
 
 #[derive(Eq, PartialEq, Hash, Clone)]
 pub(crate) struct VarName(pub(crate) String);

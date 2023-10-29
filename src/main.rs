@@ -1,10 +1,17 @@
-mod io;
+#![warn(clippy::semicolon_if_nothing_returned)]
+
+mod source;
 
 mod error;
 
-mod interpreter;
-mod lang;
-mod parser;
+mod interpreter {
+    #[allow(clippy::module_inception)]
+    pub(crate) mod interpreter;
+    pub(crate) mod lang;
+    pub(crate) mod parser;
+}
+
+mod visualizer;
 
 use std::process::ExitCode;
 
@@ -25,14 +32,16 @@ fn run() -> Result<(), error::ErrorReportedPromise> {
         } else {
             let name = args.nth(1).expect("args should have 2 items because that is checked in the if clause above");
             let source = std::fs::read_to_string(&name).map_err(|err| error::Error::new(None, format!("error opening file: {err}")).report())?;
-            io::File { name, source }
+            source::File { name, source }
         }
     };
 
-    let parse_options = parser::SyntaxOptions { assign_type: parser::AssignStatementType::Keyword, variable_decl_type: parser::VariableDeclarationType::Keyword };
+    let syntax_options =
+        interpreter::parser::SyntaxOptions { assign_type: interpreter::parser::AssignStatementType::Keyword, variable_decl_type: interpreter::parser::VariableDeclarationType::Keyword };
+    let stmts = interpreter::parser::parse_statements(&file, syntax_options)?;
 
-    let parsed = parser::parse_statements(&file, parse_options)?;
-    // interpreter::interpret(&parsed)
-    //
-    todo!()
+    let interpreter = interpreter::interpreter::Interpreter::new(stmts);
+    visualizer::run("pel interpreter", (800, 600), interpreter);
+
+    Ok(())
 }

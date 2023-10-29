@@ -1,8 +1,8 @@
 use crate::{
     error::{Error, ErrorReportedPromise, Report},
-    io::Located,
-    lang::{BinaryOp, Expr, ExprKind, ShortCircuitOp, UnaryOp, VarName},
-    parser::{parser::Parser, token::Token, SyntaxOptions},
+    source::Located,
+    interpreter::lang::{BinaryOp, Expr, ExprKind, ShortCircuitOp, UnaryOp, VarName},
+    interpreter::parser::{parser::Parser, token::Token, SyntaxOptions},
 };
 
 pub(super) fn expression<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions) -> Result<Expr<'file>, ErrorReportedPromise> {
