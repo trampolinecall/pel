@@ -55,7 +55,7 @@ impl<Data, Child: RenderObject<Data>> RenderObject<Data> for CenterRenderObject<
     }
 
     fn size(&self) -> graphics::Vector2f {
-        self.child.size()
+        self.size
     }
 
     fn send_targeted_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, target: RenderObjectId, event: event::TargetedEvent) {

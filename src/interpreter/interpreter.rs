@@ -6,7 +6,7 @@ use num_bigint::BigInt;
 use crate::{
     interpreter::lang::{BinaryOp, Expr, ExprKind, ShortCircuitOp, Stmt, StmtKind, UnaryOp, VarName},
     source::Span,
-    visualizer::widgets::{code_view::CodeView, either::Either, label::Label, responds_to_keyboard::RespondsToKeyboard, vsplit::VSplit, Widget},
+    visualizer::widgets::{center::Center, code_view::CodeView, either::Either, label::Label, responds_to_keyboard::RespondsToKeyboard, vsplit::VSplit, Widget},
 };
 
 #[derive(Default, Clone)]
@@ -61,9 +61,9 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>>> Interpreter<'fi
     pub(crate) fn view(&self) -> impl Widget<Interpreter<'file, F>> {
         let inside = match &self.state {
             InterpreterState::NotStarted => Either::new_left(Label::new("interpreter not started".to_string())),
-            InterpreterState::AboutToExecute(cur_stmt, _) => Either::new_right(VSplit::new(CodeView::new(cur_stmt.span), Label::new("interpreter running".to_string()))), // TODO
-            InterpreterState::Finished(Ok(())) => Either::new_left(Label::new("interpreter finished successfully".to_string())),                                          // TODO
-            InterpreterState::Finished(Err(err)) => Either::new_left(Label::new(format!("interpreter errored: {}", err))),                                                // TODO
+            InterpreterState::AboutToExecute(cur_stmt, _) => Either::new_right(VSplit::new(Center::new(CodeView::new(cur_stmt.span)), Label::new("interpreter running".to_string()))), // TODO
+            InterpreterState::Finished(Ok(())) => Either::new_left(Label::new("interpreter finished successfully".to_string())),                                                       // TODO
+            InterpreterState::Finished(Err(err)) => Either::new_left(Label::new(format!("interpreter errored: {}", err))),                                                             // TODO
         };
 
         RespondsToKeyboard::<Self, _, _>::new(sfml::window::Key::Space, |interpreter: &mut _| interpreter.step(), inside)
