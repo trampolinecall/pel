@@ -57,16 +57,16 @@ pub(crate) fn run<Model, ModelAsWidget: Widget<Model>>(window_name: &'static str
                     let hovered = render_object.find_hover(view_top_left, mouse_position);
                     if let Some(hovered) = hovered {
                         match button {
-                            sfml::window::mouse::Button::Left => render_object.send_targeted_event(&mut model, hovered, TargetedEvent::LeftMouseDown(mouse_position)),
-                            sfml::window::mouse::Button::Right => render_object.send_targeted_event(&mut model, hovered, TargetedEvent::RightMouseDown(mouse_position)),
+                            sfml::window::mouse::Button::Left => render_object.send_targeted_event(view_top_left, &mut model, hovered, TargetedEvent::LeftMouseDown(mouse_position)),
+                            sfml::window::mouse::Button::Right => render_object.send_targeted_event(view_top_left, &mut model, hovered, TargetedEvent::RightMouseDown(mouse_position)),
                             _ => {}
                         }
                     }
                 }
 
-                sfml::window::Event::MouseMoved { x, y } => render_object.general_event(&mut model, GeneralEvent::MouseMoved(graphics::Vector2f::new(x as f32, y as f32))), // TODO: change the event to accept 2 i32s
+                sfml::window::Event::MouseMoved { x, y } => render_object.general_event(view_top_left, &mut model, GeneralEvent::MouseMoved(graphics::Vector2f::new(x as f32, y as f32))), // TODO: change the event to accept 2 i32s
 
-                sfml::window::Event::MouseButtonReleased { button: sfml::window::mouse::Button::Left, x: _, y: _ } => render_object.general_event(&mut model, GeneralEvent::LeftMouseUp),
+                sfml::window::Event::MouseButtonReleased { button: sfml::window::mouse::Button::Left, x: _, y: _ } => render_object.general_event(view_top_left, &mut model, GeneralEvent::LeftMouseUp),
 
                 _ => {}
             }

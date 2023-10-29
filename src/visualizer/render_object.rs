@@ -25,7 +25,7 @@ pub(crate) trait RenderObject<Data: ?Sized> {
     fn find_hover(&self, top_left: graphics::Vector2f, mouse: graphics::Vector2f) -> Option<RenderObjectId>;
     fn size(&self) -> graphics::Vector2f;
 
-    fn send_targeted_event(&self, data: &mut Data, target: RenderObjectId, event: event::TargetedEvent);
-    fn targeted_event(&self, data: &mut Data, event: event::TargetedEvent);
-    fn general_event(&self, data: &mut Data, event: event::GeneralEvent);
+    fn send_targeted_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, target: RenderObjectId, event: event::TargetedEvent);
+    fn targeted_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, event: event::TargetedEvent);
+    fn general_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, event: event::GeneralEvent);
 }

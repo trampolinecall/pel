@@ -13,10 +13,12 @@ impl Display for VarName {
     }
 }
 
+#[derive(Copy, Clone)]
 pub(crate) enum UnaryOp {
     NumericNegate,
     LogicalNegate,
 }
+#[derive(Copy, Clone)]
 pub(crate) enum BinaryOp {
     Equal,
     NotEqual,
@@ -30,14 +32,17 @@ pub(crate) enum BinaryOp {
     Divide,
     Modulo,
 }
+#[derive(Copy, Clone)]
 pub(crate) enum ShortCircuitOp {
     Or,
     And,
 }
+#[derive(Clone)]
 pub(crate) struct Expr<'file> {
     pub(crate) kind: ExprKind<'file>,
     pub(crate) span: Span<'file>,
 }
+#[derive(Clone)]
 pub(crate) enum ExprKind<'file> {
     Var(VarName),
 
@@ -55,11 +60,12 @@ pub(crate) enum ExprKind<'file> {
     UnaryOp(UnaryOp, Box<Expr<'file>>),
 }
 
+#[derive(Clone)]
 pub(crate) struct Stmt<'file> {
     pub(crate) kind: StmtKind<'file>,
     pub(crate) span: Span<'file>,
 }
-
+#[derive(Clone)]
 pub(crate) enum StmtKind<'file> {
     Block(Vec<Stmt<'file>>),
     Expr(Expr<'file>),

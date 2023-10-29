@@ -69,12 +69,12 @@ impl<Data> RenderObject<Data> for TestRectRenderObject {
         self.layout_size
     }
 
-    fn send_targeted_event(&self, data: &mut Data, target: RenderObjectId, event: TargetedEvent) {
+    fn send_targeted_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, target: RenderObjectId, event: TargetedEvent) {
         if target == self.id {
-            self.targeted_event(data, event);
+            self.targeted_event(top_left, data, event);
         }
     }
 
-    fn targeted_event(&self, _: &mut Data, _: TargetedEvent) {}
-    fn general_event(&self, _: &mut Data, _: GeneralEvent) {}
+    fn targeted_event(&mut self, top_left: graphics::Vector2f, _: &mut Data, _: TargetedEvent) {}
+    fn general_event(&mut self, top_left: graphics::Vector2f, _: &mut Data, _: GeneralEvent) {}
 }

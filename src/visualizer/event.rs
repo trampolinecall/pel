@@ -9,4 +9,5 @@ pub(crate) enum TargetedEvent {
 pub(crate) enum GeneralEvent {
     MouseMoved(graphics::Vector2f),
     LeftMouseUp,
+    RightMouseUp,
 }

@@ -62,12 +62,12 @@ impl<Data> RenderObject<Data> for LabelRenderObject {
         self.size
     }
 
-    fn send_targeted_event(&self, data: &mut Data, target: RenderObjectId, event: event::TargetedEvent) {
+    fn send_targeted_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, target: RenderObjectId, event: event::TargetedEvent) {
         if target == self.id {
-            self.targeted_event(data, event);
+            self.targeted_event(top_left, data, event);
         }
     }
 
-    fn targeted_event(&self, _: &mut Data, _: event::TargetedEvent) {}
-    fn general_event(&self, _: &mut Data, _: event::GeneralEvent) {}
+    fn targeted_event(&mut self, top_left: graphics::Vector2f, _: &mut Data, _: event::TargetedEvent) {}
+    fn general_event(&mut self, top_left: graphics::Vector2f, _: &mut Data, _: event::GeneralEvent) {}
 }
