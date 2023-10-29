@@ -6,7 +6,7 @@ use num_bigint::BigInt;
 use crate::{
     interpreter::lang::{Expr, ExprKind, Stmt, StmtKind, VarName},
     source::Span,
-    visualizer::widgets::{label::Label, Widget},
+    visualizer::widgets::{label::Label, responds_to_keyboard::RespondsToKeyboard, Widget},
 };
 
 pub(crate) struct Interpreter<'file, F: Future<Output = Result<(), RuntimeError<'file>>>> {
@@ -29,11 +29,20 @@ pub(crate) fn new_interpreter(stmts: Vec<Stmt>) -> Interpreter<impl Future<Outpu
 }
 impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>>> Interpreter<'file, F> {
     pub(crate) fn view(&self) -> impl Widget<Interpreter<'file, F>> {
-        match &self.state {
-            InterpreterState::NotStarted => Label::new("interpreter not started".to_string()),                 // TODO
-            InterpreterState::AboutToExecute(_, _) => Label::new("interpreter running".to_string()),           // TODO
+        let inside = match &self.state {
+            InterpreterState::NotStarted => Label::new("interpreter not started".to_string()),
+            InterpreterState::AboutToExecute(_, _) => Label::new("interpreter running".to_string()), // TODO
             InterpreterState::Finished(Ok(())) => Label::new("interpreter finished successfully".to_string()), // TODO
-            InterpreterState::Finished(Err(err)) => Label::new(format!("interpreter errored: {}", err)),       // TODO
+            InterpreterState::Finished(Err(err)) => Label::new(format!("interpreter errored: {}", err)), // TODO
+        };
+
+        RespondsToKeyboard::<Self, _, _>::new(sfml::window::Key::Space, |interpreter: &mut _| interpreter.step(), inside)
+    }
+
+    fn step(&mut self) {
+        match self.interpret_generator.resume() {
+            genawaiter::GeneratorState::Yielded(step) => self.state = InterpreterState::AboutToExecute(step.0, step.1),
+            genawaiter::GeneratorState::Complete(res) => self.state = InterpreterState::Finished(res),
         }
     }
 }

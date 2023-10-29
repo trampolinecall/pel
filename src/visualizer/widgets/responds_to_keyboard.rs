@@ -26,8 +26,8 @@ pub(crate) struct RespondsToKeyboardRenderObject<Data, Child: RenderObject<Data>
 }
 
 impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> RespondsToKeyboard<Data, Child, Callback> {
-    pub(crate) fn new(mouse_button: sfml::window::Key, on_press: Callback, child: Child) -> Self {
-        Self { key: mouse_button, on_press, child, _phantom: PhantomData }
+    pub(crate) fn new(key: sfml::window::Key, on_press: Callback, child: Child) -> Self {
+        Self { key, on_press, child, _phantom: PhantomData }
     }
 }
 
