@@ -70,9 +70,13 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>>> Interpreter<'fi
     }
 
     fn step(&mut self) {
-        match self.interpret_generator.resume() {
-            genawaiter::GeneratorState::Yielded(step) => self.state = InterpreterState::AboutToExecute(step.0, step.1),
-            genawaiter::GeneratorState::Complete(res) => self.state = InterpreterState::Finished(res),
+        match self.state {
+            InterpreterState::NotStarted | InterpreterState::AboutToExecute(_, _) => match self.interpret_generator.resume() {
+                genawaiter::GeneratorState::Yielded(step) => self.state = InterpreterState::AboutToExecute(step.0, step.1),
+                genawaiter::GeneratorState::Complete(res) => self.state = InterpreterState::Finished(res),
+            },
+
+            InterpreterState::Finished(_) => {}
         }
     }
 }
@@ -322,18 +326,16 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: Co<(Stmt<'file>, Vars)>) 
                 }
             }
 
-            StmtKind::While(cond, body) => {
-                loop {
-                    let cond_value = interpret_expr(env, cond.clone()).await?;
-                    match cond_value {
-                        Value::Bool(true) => {},
-                        Value::Bool(false) => break Ok(()),
-                        _ => break Err(RuntimeError::ExpectedBool(cond.span, cond_value.type_()))
-                    }
-
-                    interpret_statement((*body).clone(), env, co).await?;
+            StmtKind::While(cond, body) => loop {
+                let cond_value = interpret_expr(env, cond.clone()).await?;
+                match cond_value {
+                    Value::Bool(true) => {}
+                    Value::Bool(false) => break Ok(()),
+                    _ => break Err(RuntimeError::ExpectedBool(cond.span, cond_value.type_())),
                 }
-            }
+
+                interpret_statement((*body).clone(), env, co).await?;
+            },
         }
     }
 
