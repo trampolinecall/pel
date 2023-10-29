@@ -2,6 +2,7 @@ pub(crate) mod center;
 pub(crate) mod clickable;
 pub(crate) mod code_view;
 pub(crate) mod either;
+pub(crate) mod expand;
 #[macro_use]
 pub(crate) mod fixed_amount_flex;
 pub(crate) mod label;
