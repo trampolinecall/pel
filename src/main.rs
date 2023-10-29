@@ -1,4 +1,5 @@
 #![warn(clippy::semicolon_if_nothing_returned)]
+#![allow(clippy::type_complexity)]
 
 mod source;
 

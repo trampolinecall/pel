@@ -74,16 +74,16 @@ impl<Data, Child: RenderObject<Data>, Callback: Fn(&mut Data)> RenderObject<Data
         self.child.send_targeted_event(top_left, data, target, event);
     }
 
-    fn targeted_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, event: event::TargetedEvent) {}
+    fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::TargetedEvent) {}
     fn general_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, event: event::GeneralEvent) {
         match event {
             event::GeneralEvent::MouseMoved(_) => {}
             event::GeneralEvent::LeftMouseUp => {}
             event::GeneralEvent::RightMouseUp => {}
-            event::GeneralEvent::KeyPressed { code, alt, ctrl, shift, system } => {
+            event::GeneralEvent::KeyPressed { code, .. } => {
                 if code == self.key {
                     // TODO: modifier keys?
-                    (self.on_press)(data)
+                    (self.on_press)(data);
                 }
             }
         }
