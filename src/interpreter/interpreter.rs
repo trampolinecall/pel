@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 
 use crate::{
     interpreter::lang::{Stmt, VarName},
-    visualizer::{graphics, widgets::test_rect::TestRect},
+    visualizer::widgets::{label::Label, Widget},
 };
 
 #[derive(Clone)]
@@ -38,8 +38,9 @@ impl<'file> Interpreter<'file> {
         Interpreter { stmts, vars: HashMap::new() }
     }
 
-    pub(crate) fn view(&self) -> TestRect {
-        TestRect::new(graphics::Color::RED, (100.0, 100.0).into()) // TODO
+    pub(crate) fn view(&self) -> impl Widget<Interpreter<'file>> {
+        // TestRect::new(graphics::Color::RED, (100.0, 100.0).into()) // TODO
+        Label::new("looking at the interpreter!!".to_string()) // TODO
     }
 }
 

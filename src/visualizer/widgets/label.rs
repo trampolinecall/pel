@@ -1,6 +1,8 @@
+use sfml::graphics::Transformable;
+
 use crate::visualizer::{
     event, graphics, layout,
-    render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker},
+    render_object::{util, RenderObject, RenderObjectId, RenderObjectIdMaker},
     widgets::Widget,
 };
 
@@ -33,31 +35,39 @@ impl<Data> Widget<Data> for Label {
 }
 
 impl<Data> RenderObject<Data> for LabelRenderObject {
-    fn layout(&mut self, sc: layout::SizeConstraints) {
-        todo!()
+    fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
+        let text = graphics::Text::new(&self.text, &graphics_context.font, 15); // TODO: control font size
+        self.size = sc.clamp_size(text.global_bounds().size());
     }
 
-    fn draw(&self, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, hover: Option<RenderObjectId>) {
-        todo!()
+    fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, _: Option<RenderObjectId>) {
+        // TODO: deal with overflow (clipping does not work because the bounding box does not include descenders)
+        // util::clip(graphics_context, target, graphics::FloatRect::from_vecs(top_left, self.size), |target, top_left| {
+            let mut text = graphics::Text::new(&self.text, &graphics_context.font, 15); // TODO: control font size
+            text.set_position(top_left);
+            text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
+            target.draw(&text);
+        // });
     }
 
     fn find_hover(&self, top_left: graphics::Vector2f, mouse: graphics::Vector2f) -> Option<RenderObjectId> {
-        todo!()
+        if graphics::FloatRect::from_vecs(top_left, self.size).contains(mouse) {
+            Some(self.id)
+        } else {
+            None
+        }
     }
 
     fn size(&self) -> graphics::Vector2f {
-        todo!()
+        self.size
     }
 
     fn send_targeted_event(&self, data: &mut Data, target: RenderObjectId, event: event::TargetedEvent) {
-        todo!()
+        if target == self.id {
+            self.targeted_event(data, event);
+        }
     }
 
-    fn targeted_event(&self, data: &mut Data, event: event::TargetedEvent) {
-        todo!()
-    }
-
-    fn general_event(&self, data: &mut Data, event: event::GeneralEvent) {
-        todo!()
-    }
+    fn targeted_event(&self, _: &mut Data, _: event::TargetedEvent) {}
+    fn general_event(&self, _: &mut Data, _: event::GeneralEvent) {}
 }

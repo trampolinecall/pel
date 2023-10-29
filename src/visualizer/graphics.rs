@@ -4,6 +4,7 @@
 pub(crate) use sfml::{
     graphics::{CircleShape, Color, FloatRect, Font, Rect, RectangleShape, RenderTarget, RenderTexture, RenderWindow, Sprite, Text, Transformable},
     system::{Vector2, Vector2f, Vector2i, Vector2u},
+    SfBox,
 };
 
 pub(crate) trait RectCenter<T> {
@@ -36,7 +37,7 @@ impl CenterText for Text<'_> {
     }
 }
 
-#[inline]
-pub(crate) fn default_render_context_settings() -> sfml::window::ContextSettings {
-    sfml::window::ContextSettings { antialiasing_level: 0, ..Default::default() }
+pub(crate) struct GraphicsContext {
+    pub(crate) font: SfBox<Font>,
+    pub(crate) default_render_context_settings: sfml::window::ContextSettings,
 }

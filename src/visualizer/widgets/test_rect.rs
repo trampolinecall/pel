@@ -40,11 +40,11 @@ impl<Data> Widget<Data> for TestRect {
 }
 
 impl<Data> RenderObject<Data> for TestRectRenderObject {
-    fn layout(&mut self, sc: layout::SizeConstraints) {
+    fn layout(&mut self, _: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         self.layout_size = sc.clamp_size(self.ideal_size);
     }
 
-    fn draw(&self, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, hover: Option<RenderObjectId>) {
+    fn draw(&self, _: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, hover: Option<RenderObjectId>) {
         let rect = graphics::FloatRect::from_vecs(top_left, self.layout_size);
         let mut rect_shape = graphics::RectangleShape::from_rect(rect);
         rect_shape.set_fill_color(self.color);
