@@ -2,7 +2,7 @@ use num_bigint::BigInt;
 
 use std::fmt::Display;
 
-use crate::source::Span;
+use crate::source::{Span, Located};
 
 #[derive(Eq, PartialEq, Hash, Clone)]
 pub(crate) struct VarName(pub(crate) String);
@@ -55,9 +55,9 @@ pub(crate) enum ExprKind<'file> {
 
     Call(Box<Expr<'file>>, Vec<Expr<'file>>),
 
-    ShortCircuitOp(Box<Expr<'file>>, ShortCircuitOp, Box<Expr<'file>>),
-    BinaryOp(Box<Expr<'file>>, BinaryOp, Box<Expr<'file>>),
-    UnaryOp(UnaryOp, Box<Expr<'file>>),
+    ShortCircuitOp(Box<Expr<'file>>, Located<'file, ShortCircuitOp>, Box<Expr<'file>>),
+    BinaryOp(Box<Expr<'file>>, Located<'file, BinaryOp>, Box<Expr<'file>>),
+    UnaryOp(Located<'file, UnaryOp>, Box<Expr<'file>>),
 }
 
 #[derive(Clone)]

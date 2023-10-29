@@ -26,34 +26,34 @@ macro_rules! left_associative_binary_op {
 }
 
 left_associative_binary_op!(or, and, ShortCircuitOp, |tok| match tok.1 {
-    Token::DoublePipe => Some(ShortCircuitOp::Or),
+    Token::DoublePipe => Some(Located(tok.0, ShortCircuitOp::Or)),
     _ => None,
 });
 left_associative_binary_op!(and, equality, ShortCircuitOp, |tok| match tok.1 {
-    Token::DoubleAmper => Some(ShortCircuitOp::And),
+    Token::DoubleAmper => Some(Located(tok.0, ShortCircuitOp::And)),
     _ => None,
 });
 left_associative_binary_op!(equality, comparison, BinaryOp, |tok| match tok.1 {
-    Token::BangEqual => Some(BinaryOp::NotEqual),
-    Token::DoubleEqual => Some(BinaryOp::Equal),
+    Token::BangEqual => Some(Located(tok.0, BinaryOp::NotEqual)),
+    Token::DoubleEqual => Some(Located(tok.0, BinaryOp::Equal)),
     _ => None,
 });
 left_associative_binary_op!(comparison, term, BinaryOp, |tok| match tok.1 {
-    Token::Greater => Some(BinaryOp::Greater),
-    Token::GreaterEqual => Some(BinaryOp::GreaterEqual),
-    Token::Less => Some(BinaryOp::Less),
-    Token::LessEqual => Some(BinaryOp::LessEqual),
+    Token::Greater => Some(Located(tok.0, BinaryOp::Greater)),
+    Token::GreaterEqual => Some(Located(tok.0, BinaryOp::GreaterEqual)),
+    Token::Less => Some(Located(tok.0, BinaryOp::Less)),
+    Token::LessEqual => Some(Located(tok.0, BinaryOp::LessEqual)),
     _ => None,
 });
 left_associative_binary_op!(term, factor, BinaryOp, |tok| match tok.1 {
-    Token::Plus => Some(BinaryOp::Add),
-    Token::Minus => Some(BinaryOp::Subtract),
+    Token::Plus => Some(Located(tok.0, BinaryOp::Add)),
+    Token::Minus => Some(Located(tok.0, BinaryOp::Subtract)),
     _ => None,
 });
 left_associative_binary_op!(factor, unary, BinaryOp, |tok| match tok.1 {
-    Token::Star => Some(BinaryOp::Multiply),
-    Token::Slash => Some(BinaryOp::Divide),
-    Token::Percent => Some(BinaryOp::Modulo),
+    Token::Star => Some(Located(tok.0, BinaryOp::Multiply)),
+    Token::Slash => Some(Located(tok.0, BinaryOp::Divide)),
+    Token::Percent => Some(Located(tok.0, BinaryOp::Modulo)),
     _ => None,
 });
 
@@ -65,7 +65,7 @@ fn unary<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions) -> Re
     }) {
         let operand = unary(parser, syntax_options)?;
         let total_span = operator.0 + operand.span;
-        Ok(Expr { kind: ExprKind::UnaryOp(operator.1, Box::new(operand)), span: total_span })
+        Ok(Expr { kind: ExprKind::UnaryOp(operator, Box::new(operand)), span: total_span })
     } else {
         call(parser, syntax_options)
     }

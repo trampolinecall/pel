@@ -34,7 +34,7 @@ fn run() -> Result<(), error::ErrorReportedPromise> {
         } else {
             let name = args.nth(1).expect("args should have 2 items because that is checked in the if clause above");
             let source = std::fs::read_to_string(&name).map_err(|err| error::Error::new(None, format!("error opening file: {err}")).report())?;
-            source::File { name, source }
+            source::File::new(name, source)
         }
     };
 

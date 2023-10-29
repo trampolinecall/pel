@@ -5,8 +5,11 @@ use num_bigint::BigInt;
 
 use crate::{
     interpreter::lang::{BinaryOp, Expr, ExprKind, ShortCircuitOp, Stmt, StmtKind, UnaryOp, VarName},
-    source::Span,
-    visualizer::widgets::{center::Center, code_view::CodeView, either::Either, label::Label, responds_to_keyboard::RespondsToKeyboard, vsplit::VSplit, Widget, expand::Expand},
+    source::{Located, Span},
+    visualizer::widgets::{
+        center::Center, code_view::CodeView, either::Either, empty::Empty, expand::Expand, fixed_amount_flex::FlexItemSettings, label::Label, responds_to_keyboard::RespondsToKeyboard, vsplit::VSplit,
+        Widget,
+    },
 };
 
 #[derive(Default, Clone)]
@@ -49,8 +52,8 @@ pub(crate) struct Interpreter<'file, F: Future<Output = Result<(), RuntimeError<
 }
 enum InterpreterState<'file> {
     NotStarted,
-    AboutToExecute(Span<'file>, Vars),
-    Finished(Result<(), RuntimeError<'file>>),
+    AboutToExecute { highlight: Span<'file>, env: Vars },
+    Finished { result: Result<(), RuntimeError<'file>> },
 }
 
 pub(crate) fn new_interpreter(stmts: Vec<Stmt>) -> Interpreter<impl Future<Output = Result<(), RuntimeError>>> {
@@ -59,29 +62,32 @@ pub(crate) fn new_interpreter(stmts: Vec<Stmt>) -> Interpreter<impl Future<Outpu
 }
 impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>>> Interpreter<'file, F> {
     pub(crate) fn view(&self) -> impl Widget<Interpreter<'file, F>> {
-        let inside = match &self.state {
-            InterpreterState::NotStarted => Either::new_left(Label::new("interpreter not started".to_string())),
-            InterpreterState::AboutToExecute(cur_span, _) => Either::new_right(
-                flex! {
-                    horizontal
-                    code_view: FlexItemSettings::Flex(1.0), Expand::new(CodeView::new(*cur_span)),
-                    msg: FlexItemSettings::Fixed, Label::new("running".to_string())},
-            ), // TODO
-            InterpreterState::Finished(Ok(())) => Either::new_left(Label::new("interpreter finished successfully".to_string())), // TODO
-            InterpreterState::Finished(Err(err)) => Either::new_left(Label::new(format!("interpreter errored: {}", err))),       // TODO
+        let (code_view, msg) = match &self.state {
+            InterpreterState::NotStarted => (Either::new_left(Empty), Label::new("interpreter not started".to_string())),
+            InterpreterState::AboutToExecute { highlight: cur_span, env: _ } => (Either::new_right(Expand::new(CodeView::new(*cur_span))), Label::new("running".to_string())),
+            InterpreterState::Finished { result: Ok(()) } => (Either::new_left(Empty), Label::new("interpreter finished successfully".to_string())),
+            InterpreterState::Finished { result: Err(err) } => (Either::new_left(Empty), Label::new(format!("interpreter had error: {err}"))),
         };
 
-        RespondsToKeyboard::<Self, _, _>::new(sfml::window::Key::Space, |interpreter: &mut _| interpreter.step(), inside)
+        RespondsToKeyboard::<Self, _, _>::new(
+            sfml::window::Key::Space,
+            |interpreter: &mut _| interpreter.step(),
+            flex! {
+                horizontal
+                code_view: FlexItemSettings::Flex(1.0), code_view,
+                msg: FlexItemSettings::Fixed, msg,
+            },
+        )
     }
 
     fn step(&mut self) {
         match self.state {
-            InterpreterState::NotStarted | InterpreterState::AboutToExecute(_, _) => match self.interpret_generator.resume() {
-                genawaiter::GeneratorState::Yielded(step) => self.state = InterpreterState::AboutToExecute(step.0, step.1),
-                genawaiter::GeneratorState::Complete(res) => self.state = InterpreterState::Finished(res),
+            InterpreterState::NotStarted | InterpreterState::AboutToExecute { highlight: _, env: _ } => match self.interpret_generator.resume() {
+                genawaiter::GeneratorState::Yielded(step) => self.state = InterpreterState::AboutToExecute { highlight: step.0, env: step.1 },
+                genawaiter::GeneratorState::Complete(res) => self.state = InterpreterState::Finished { result: res },
             },
 
-            InterpreterState::Finished(_) => {}
+            InterpreterState::Finished { result: _, .. } => {}
         }
     }
 }
@@ -170,20 +176,24 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: Co<(Span<'file>, Vars)>) 
 
     #[async_recursion]
     async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(env: &mut Vars, e: Expr<'file>, co: &Co<(Span<'file>, Vars)>) -> Result<Value, RuntimeError<'file>> {
-        co.yield_((e.span, env.clone())).await;
         match e.kind {
-            ExprKind::Var(vname) => match env.lookup(&vname) {
-                Some(Some(v)) => Ok(v.clone()),
-                Some(None) => Err(RuntimeError::VarUninitialized(e.span, vname)),
-                None => Err(RuntimeError::VarDoesNotExist(e.span, vname)),
-            },
+            ExprKind::Var(vname) => {
+                co.yield_((e.span, env.clone())).await;
+                match env.lookup(&vname) {
+                    Some(Some(v)) => Ok(v.clone()),
+                    Some(None) => Err(RuntimeError::VarUninitialized(e.span, vname)),
+                    None => Err(RuntimeError::VarDoesNotExist(e.span, vname)),
+                }
+            }
             ExprKind::Int(i) => Ok(Value::Int(i)),
             ExprKind::Float(f) => Ok(Value::Float(f)),
             ExprKind::String(s) => Ok(Value::String(s)),
             ExprKind::Bool(b) => Ok(Value::Bool(b)),
             ExprKind::Parenthesized(e) => Ok(interpret_expr(env, *e, co).await?),
-            ExprKind::Call(_, _) => todo!(),
-            ExprKind::ShortCircuitOp(left, op, right) => {
+            ExprKind::Call(_, _) => {
+                todo!()
+            }
+            ExprKind::ShortCircuitOp(left, Located(_, op), right) => {
                 let left_span = left.span;
                 let right_span = right.span;
                 match op {
@@ -205,7 +215,7 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: Co<(Span<'file>, Vars)>) 
                     },
                 }
             }
-            ExprKind::BinaryOp(left, op, right) => {
+            ExprKind::BinaryOp(left, Located(op_span, op), right) => {
                 let left = interpret_expr(env, *left, co).await?;
                 let right = interpret_expr(env, *right, co).await?;
 
@@ -216,57 +226,71 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: Co<(Span<'file>, Vars)>) 
                             (Value::Float(f1), Value::Float(f2)) => Ok(Value::Bool(f1 $op f2)),
                             (Value::String(s1), Value::String(s2)) => Ok(Value::Bool(s1 $op s2)),
                             (Value::Bool(b1), Value::Bool(b2)) => Ok(Value::Bool(b1 $op b2)),
-                            (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(e.span, op, left.type_(), right.type_())),
+                            (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(op_span, op, left.type_(), right.type_())),
                         }
                     };
                 }
 
+                co.yield_((op_span, env.clone())).await;
                 match op {
-                    BinaryOp::Equal => comparison!(==),
-                    BinaryOp::NotEqual => comparison!(!=),
-                    BinaryOp::Greater => comparison!(>),
-                    BinaryOp::GreaterEqual => comparison!(>=),
-                    BinaryOp::Less => comparison!(<),
-                    BinaryOp::LessEqual => comparison!(<=),
+                    BinaryOp::Equal => {
+                        comparison!(==)
+                    }
+                    BinaryOp::NotEqual => {
+                        comparison!(!=)
+                    }
+                    BinaryOp::Greater => {
+                        comparison!(>)
+                    }
+                    BinaryOp::GreaterEqual => {
+                        comparison!(>=)
+                    }
+                    BinaryOp::Less => {
+                        comparison!(<)
+                    }
+                    BinaryOp::LessEqual => {
+                        comparison!(<=)
+                    }
                     BinaryOp::Add => match (left, right) {
                         (Value::Int(i1), Value::Int(i2)) => Ok(Value::Int(i1 + i2)),
                         (Value::Float(f1), Value::Float(f2)) => Ok(Value::Float(f1 + f2)),
                         (Value::String(s1), Value::String(s2)) => Ok(Value::String(s1 + &s2)),
-                        (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(e.span, op, left.type_(), right.type_())),
+                        (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(op_span, op, left.type_(), right.type_())),
                     },
                     BinaryOp::Subtract => match (left, right) {
                         (Value::Int(i1), Value::Int(i2)) => Ok(Value::Int(i1 - i2)),
                         (Value::Float(f1), Value::Float(f2)) => Ok(Value::Float(f1 - f2)),
-                        (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(e.span, op, left.type_(), right.type_())),
+                        (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(op_span, op, left.type_(), right.type_())),
                     },
                     BinaryOp::Multiply => match (left, right) {
                         (Value::Int(i1), Value::Int(i2)) => Ok(Value::Int(i1 * i2)),
                         (Value::Float(f1), Value::Float(f2)) => Ok(Value::Float(f1 * f2)),
-                        (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(e.span, op, left.type_(), right.type_())),
+                        (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(op_span, op, left.type_(), right.type_())),
                     },
                     BinaryOp::Divide => match (left, right) {
                         (Value::Int(i1), Value::Int(i2)) => Ok(Value::Int(i1 / i2)),
                         (Value::Float(f1), Value::Float(f2)) => Ok(Value::Float(f1 / f2)),
-                        (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(e.span, op, left.type_(), right.type_())),
+                        (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(op_span, op, left.type_(), right.type_())),
                     },
                     BinaryOp::Modulo => match (left, right) {
                         (Value::Int(i1), Value::Int(i2)) => Ok(Value::Int(i1 % i2)),
                         (Value::Float(f1), Value::Float(f2)) => Ok(Value::Float(f1 % f2)),
-                        (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(e.span, op, left.type_(), right.type_())),
+                        (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(op_span, op, left.type_(), right.type_())),
                     },
                 }
             }
-            ExprKind::UnaryOp(operator, operand) => {
+            ExprKind::UnaryOp(Located(operator_span, operator), operand) => {
                 let operand = interpret_expr(env, *operand, co).await?;
+                co.yield_((operator_span, env.clone())).await;
                 match operator {
                     UnaryOp::NumericNegate => match operand {
                         Value::Int(i) => Ok(Value::Int(-i)),
                         Value::Float(f) => Ok(Value::Float(-f)),
-                        operand => Err(RuntimeError::InvalidTypeForUnaryOp(e.span, operator, operand.type_())),
+                        operand => Err(RuntimeError::InvalidTypeForUnaryOp(operator_span, operator, operand.type_())),
                     },
                     UnaryOp::LogicalNegate => match operand {
                         Value::Bool(b) => Ok(Value::Bool(!b)),
-                        operand => Err(RuntimeError::InvalidTypeForUnaryOp(e.span, operator, operand.type_())),
+                        operand => Err(RuntimeError::InvalidTypeForUnaryOp(operator_span, operator, operand.type_())),
                     },
                 }
             }

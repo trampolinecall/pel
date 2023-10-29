@@ -3,9 +3,16 @@ use std::{fmt::Display, ops::Add};
 pub(crate) struct File {
     pub(crate) name: String,
     pub(crate) source: String,
+    pub(crate) lines: Vec<String>,
+    _dont_construct: (),
 }
 
 impl File {
+    pub(crate) fn new(name: String, source: String) -> Self {
+        let lines = source.lines().map(String::from).collect();
+        Self { name, source, lines, _dont_construct: () }
+    }
+
     pub(crate) fn eof_span(&self) -> Span<'_> {
         Span { file: self, start: self.source.len(), end: self.source.len() }
     }
@@ -90,10 +97,10 @@ fn get_line_col(file: &File, index: usize) -> (usize, usize) {
 mod test {
     #[test]
     fn line_col() {
-        use crate::io::{get_line_col, File};
+        use crate::source::{get_line_col, File};
 
         let test_line_col = |file_contents: &'static str, index, expected_line, expected_col| {
-            let file = File { name: "test_line_col generated file".to_string(), source: file_contents.to_string() };
+            let file = File::new("test_line_col generated file".to_string(), file_contents.to_string());
             assert_eq!(get_line_col(&file, index), (expected_line, expected_col));
         };
 
