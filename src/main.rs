@@ -5,14 +5,15 @@ mod source;
 
 mod error;
 
+#[macro_use]
+mod visualizer;
+
 mod interpreter {
     #[allow(clippy::module_inception)]
     pub(crate) mod interpreter;
     pub(crate) mod lang;
     pub(crate) mod parser;
 }
-
-mod visualizer;
 
 use std::process::ExitCode;
 

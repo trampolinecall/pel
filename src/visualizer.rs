@@ -1,8 +1,9 @@
-mod event;
+pub(crate) mod event;
 pub(crate) mod graphics;
-mod layout;
+pub(crate) mod layout;
 pub(crate) mod lens;
 pub(crate) mod render_object;
+#[macro_use]
 pub(crate) mod widgets;
 
 use sfml::{
