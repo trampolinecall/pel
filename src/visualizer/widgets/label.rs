@@ -37,7 +37,7 @@ impl<Data> RenderObject<Data> for LabelRenderObject {
         todo!()
     }
 
-    fn draw_inner(&self, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, hover: Option<RenderObjectId>) {
+    fn draw(&self, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, hover: Option<RenderObjectId>) {
         todo!()
     }
 

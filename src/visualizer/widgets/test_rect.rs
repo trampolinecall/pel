@@ -44,11 +44,16 @@ impl<Data> RenderObject<Data> for TestRectRenderObject {
         self.layout_size = sc.clamp_size(self.ideal_size);
     }
 
-    fn draw_inner(&self, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, hover: Option<RenderObjectId>) {
-        // TODO: use hovered?
+    fn draw(&self, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, hover: Option<RenderObjectId>) {
         let rect = graphics::FloatRect::from_vecs(top_left, self.layout_size);
         let mut rect_shape = graphics::RectangleShape::from_rect(rect);
         rect_shape.set_fill_color(self.color);
+
+        if hover == Some(self.id) {
+            rect_shape.set_outline_color(graphics::Color::rgba(255, 255, 255, 100)); // TODO: pick a better color for this
+            rect_shape.set_outline_thickness(5.0);
+        }
+
         target.draw(&rect_shape);
     }
 
