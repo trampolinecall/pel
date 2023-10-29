@@ -1,34 +1,76 @@
 use crate::{
     error::{Error, ErrorReportedPromise, Report},
-    source::{Located, Span},
     interpreter::lang::{Expr, ExprKind, Stmt, StmtKind, VarName},
     interpreter::parser::{expr::expression, parser::Parser, token::Token, SyntaxOptions},
+    source::{Located, Span},
 };
 
 pub(super) fn statement<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions) -> Result<Stmt<'file>, ErrorReportedPromise> {
-    let tok = parser.next();
+    let tok = parser.peek();
     match tok.1 {
-        Token::OBrace => finish_block(parser, syntax_options, tok),
-        Token::If => if_statement(parser, syntax_options, tok),
-        Token::For => for_statement(parser, syntax_options, tok),
-        Token::While => while_statement(parser, syntax_options, tok),
-        Token::Break => break_statement(parser, syntax_options, tok),
-        Token::Continue => continue_statement(parser, syntax_options, tok),
-        Token::Var => var_statement(parser, syntax_options, tok),
-        Token::Return => return_statement(parser, syntax_options, tok),
-        Token::Assign => assign_statement(parser, syntax_options, tok),
-        Token::Make => make_var_statement(parser, syntax_options, tok),
-        Token::Print => print_statement(parser, syntax_options, tok),
+        Token::OBrace => {
+            let tok = parser.next();
+            finish_block(parser, syntax_options, tok)
+        }
+        Token::If => {
+            let tok = parser.next();
+            if_statement(parser, syntax_options, tok)
+        }
+        Token::For => {
+            let tok = parser.next();
+            for_statement(parser, syntax_options, tok)
+        }
+        Token::While => {
+            let tok = parser.next();
+            while_statement(parser, syntax_options, tok)
+        }
+        Token::Break => {
+            let tok = parser.next();
+            break_statement(parser, syntax_options, tok)
+        }
+        Token::Continue => {
+            let tok = parser.next();
+            continue_statement(parser, syntax_options, tok)
+        }
+        Token::Var => {
+            let tok = parser.next();
+            var_statement(parser, syntax_options, tok)
+        }
+        Token::Return => {
+            let tok = parser.next();
+            return_statement(parser, syntax_options, tok)
+        }
+        Token::Assign => {
+            let tok = parser.next();
+            assign_statement(parser, syntax_options, tok)
+        }
+        Token::Make => {
+            let tok = parser.next();
+            make_var_statement(parser, syntax_options, tok)
+        }
+        Token::Print => {
+            let tok = parser.next();
+            print_statement(parser, syntax_options, tok)
+        }
 
         _ => {
             let expr = expression(parser, syntax_options)?;
+
             if let Some(()) = parser.maybe_consume(|tok| matches!(tok.1, Token::Equal).then_some(())) {
                 let rhs = expression(parser, syntax_options)?;
-                let total_span = expr.span + rhs.span;
+                let semi_sp = parser.consume(|tok| match tok.1 {
+                    Token::Semicolon => Ok(tok.0),
+                    _ => Err(Error::new(Some(tok.0), "expected ';' after assignment statement".to_string()).report()),
+                })?;
+                let total_span = expr.span + semi_sp;
                 make_assignment(expr, rhs, total_span)
             } else {
                 let expr_span = expr.span;
-                Ok(Stmt { kind: StmtKind::Expr(expr), span: expr_span })
+                let semi_sp = parser.consume(|tok| match tok.1 {
+                    Token::Semicolon => Ok(tok.0),
+                    _ => Err(Error::new(Some(tok.0), "expected ';' after expression statement".to_string()).report()),
+                })?;
+                Ok(Stmt { kind: StmtKind::Expr(expr), span: expr_span + semi_sp })
             }
         }
     }
