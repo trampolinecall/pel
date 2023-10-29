@@ -1,8 +1,8 @@
 use crate::{
     error::{Error, ErrorReportedPromise, Report},
-    source::File,
     interpreter::lang::{Expr, Stmt},
     interpreter::parser::token::Token,
+    source::File,
 };
 
 // TODO: syntax options

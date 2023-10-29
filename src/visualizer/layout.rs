@@ -14,4 +14,3 @@ impl SizeConstraints {
         graphics::Vector2f::new(size.x.clamp(self.min.x, self.max.x), size.y.clamp(self.min.y, self.max.y))
     }
 }
-

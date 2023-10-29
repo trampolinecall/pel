@@ -1,7 +1,7 @@
 use crate::{
     error::ErrorReportedPromise,
-    source::{Located, Span},
     interpreter::parser::{lexer::Lexer, token::Token},
+    source::{Located, Span},
 };
 
 pub(super) struct Parser<'file> {
