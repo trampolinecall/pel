@@ -10,4 +10,5 @@ pub(crate) enum GeneralEvent {
     MouseMoved(graphics::Vector2f),
     LeftMouseUp,
     RightMouseUp,
+    KeyPressed { code: sfml::window::Key, alt: bool, ctrl: bool, shift: bool, system: bool },
 }

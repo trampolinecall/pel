@@ -1,6 +1,7 @@
 pub(crate) mod label;
 pub(crate) mod test_rect;
 pub(crate) mod clickable;
+pub(crate) mod responds_to_keyboard;
 
 use crate::visualizer::render_object::{RenderObject, RenderObjectIdMaker};
 

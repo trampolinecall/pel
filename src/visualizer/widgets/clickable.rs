@@ -140,6 +140,7 @@ impl<Data, NormalChild: RenderObject<Data>, ChildOnClicked: RenderObject<Data>, 
                     (self.on_click)(data);
                 }
             }
+            event::GeneralEvent::KeyPressed { .. } => {}
         }
 
         if self.clicked {

@@ -68,6 +68,11 @@ pub(crate) fn run<Model, ModelAsWidget: Widget<Model>>(window_name: &'static str
 
                 sfml::window::Event::MouseButtonReleased { button: sfml::window::mouse::Button::Left, x: _, y: _ } => render_object.general_event(view_top_left, &mut model, GeneralEvent::LeftMouseUp),
 
+                // TODO: proper event dispatch (including reworking the mouse events above)
+                sfml::window::Event::KeyPressed { code, alt, ctrl, shift, system } => {
+                    render_object.general_event(view_top_left, &mut model, GeneralEvent::KeyPressed { code, alt, ctrl, shift, system })
+                }
+
                 _ => {}
             }
         }
