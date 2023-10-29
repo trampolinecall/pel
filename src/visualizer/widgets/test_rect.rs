@@ -32,7 +32,7 @@ impl<Data> Widget<Data> for TestRect {
         TestRectRenderObject { color: self.color, ideal_size: self.size, _private: (), layout_size: graphics::Vector2f::new(0.0, 0.0), id: id_maker.next_id() }
     }
 
-    fn update_render_object(self, render_object: &mut Self::Result) {
+    fn update_render_object(self, render_object: &mut Self::Result, _: &mut RenderObjectIdMaker) {
         // TODO: animate?
         render_object.color = self.color;
         render_object.ideal_size = self.size;

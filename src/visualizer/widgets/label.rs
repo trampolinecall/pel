@@ -27,7 +27,7 @@ impl<Data> Widget<Data> for Label {
         LabelRenderObject { id: id_maker.next_id(), text: self.text, size: graphics::Vector2f::new(0.0, 0.0), _private: () }
     }
 
-    fn update_render_object(self, render_object: &mut Self::Result) {
+    fn update_render_object(self, render_object: &mut Self::Result, _: &mut RenderObjectIdMaker) {
         render_object.text = self.text;
     }
 }

@@ -3,7 +3,6 @@ pub(crate) mod graphics;
 mod layout;
 pub(crate) mod lens;
 pub(crate) mod render_object;
-pub(crate) mod view;
 pub(crate) mod widgets;
 
 use sfml::{
@@ -15,15 +14,12 @@ use crate::visualizer::{
     event::{GeneralEvent, TargetedEvent},
     layout::SizeConstraints,
     render_object::{RenderObject, RenderObjectIdMaker},
-    view::View,
     widgets::Widget,
 };
 
-pub(crate) fn run(window_name: &'static str, window_size: (u32, u32), mut model: impl View) {
-    let mut render_object = {
-        let mut id_maker = RenderObjectIdMaker::new();
-        model.to_widget().to_render_object(&mut id_maker)
-    };
+pub(crate) fn run<Model, ModelAsWidget: Widget<Model>>(window_name: &'static str, window_size: (u32, u32), mut model: Model, model_to_widget: impl Fn(&Model) -> ModelAsWidget) {
+    let mut id_maker = RenderObjectIdMaker::new();
+    let mut render_object = model_to_widget(&model).to_render_object(&mut id_maker);
 
     let mut window = RenderWindow::new(window_size, window_name, Style::DEFAULT, &graphics::default_render_context_settings());
     window.set_vertical_sync_enabled(true);
@@ -71,7 +67,7 @@ pub(crate) fn run(window_name: &'static str, window_size: (u32, u32), mut model:
 
         // draw
         window.set_active(true);
-        model.to_widget().update_render_object(&mut render_object);
+        model_to_widget(&model).update_render_object(&mut render_object, &mut id_maker);
 
         let view_top_left = graphics::Vector2f::new(0.0, 0.0);
         let size_constraints = SizeConstraints { min: graphics::Vector2f::new(0.0, 0.0), max: window.size().as_other() };
