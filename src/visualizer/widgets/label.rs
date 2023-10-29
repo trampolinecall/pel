@@ -2,7 +2,7 @@ use sfml::graphics::Transformable;
 
 use crate::visualizer::{
     event, graphics, layout,
-    render_object::{util, RenderObject, RenderObjectId, RenderObjectIdMaker},
+    render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker},
     widgets::Widget,
 };
 
@@ -43,10 +43,10 @@ impl<Data> RenderObject<Data> for LabelRenderObject {
     fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, _: Option<RenderObjectId>) {
         // TODO: deal with overflow (clipping does not work because the bounding box does not include descenders)
         // util::clip(graphics_context, target, graphics::FloatRect::from_vecs(top_left, self.size), |target, top_left| {
-            let mut text = graphics::Text::new(&self.text, &graphics_context.font, 15); // TODO: control font size
-            text.set_position(top_left);
-            text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
-            target.draw(&text);
+        let mut text = graphics::Text::new(&self.text, &graphics_context.font, 15); // TODO: control font size
+        text.set_position(top_left);
+        text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
+        target.draw(&text);
         // });
     }
 
