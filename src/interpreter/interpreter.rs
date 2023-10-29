@@ -64,8 +64,7 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>>> Interpreter<'fi
             InterpreterState::AboutToExecute(cur_span, _) => Either::new_right(
                 flex! {
                     horizontal
-                    code_view: FlexItemSettings::Flex(1.0), (CodeView::new(*cur_span)),
-                    code_view2: FlexItemSettings::Flex(2.0), (CodeView::new(*cur_span)),
+                    code_view: FlexItemSettings::Flex(1.0), Center::new(CodeView::new(*cur_span)),
                     msg: FlexItemSettings::Fixed, Label::new("running".to_string())},
             ), // TODO
             InterpreterState::Finished(Ok(())) => Either::new_left(Label::new("interpreter finished successfully".to_string())), // TODO
