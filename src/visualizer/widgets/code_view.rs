@@ -1,4 +1,4 @@
-use sfml::graphics::Transformable;
+use sfml::graphics::{Transformable, Shape};
 
 use crate::{
     source::Span,
@@ -50,6 +50,18 @@ impl<'file, Data> RenderObject<Data> for CodeViewRenderObject<'file> {
         let mut text = graphics::Text::new(&self.span.file().source, &graphics_context.font, 15); // TODO: control font size
         text.set_position(top_left);
         text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
+                                                     //
+        let highlight_start_pos = text.find_character_pos(self.span.start());
+        let highlight_end_pos = text.find_character_pos(self.span.end());
+
+        let mut start_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(highlight_start_pos, graphics::Vector2f::new(10.0, 10.0)));
+        let mut end_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(highlight_end_pos, graphics::Vector2f::new(10.0, 10.0)));
+
+        start_rect.set_fill_color(graphics::Color::GREEN);
+        end_rect.set_fill_color(graphics::Color::GREEN);
+
+        target.draw(&start_rect);
+        target.draw(&end_rect);
         target.draw(&text);
         // });
     }
