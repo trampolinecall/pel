@@ -28,6 +28,18 @@ impl Span<'_> {
         assert!(start <= end, "cannot have span that ends earlier than it starts");
         Span { file, start, end }
     }
+
+    pub(crate) fn file(&self) -> &File {
+        self.file
+    }
+
+    pub(crate) fn start(&self) -> usize {
+        self.start
+    }
+
+    pub(crate) fn end(&self) -> usize {
+        self.end
+    }
 }
 
 impl<'a> Add for Span<'a> {

@@ -4,6 +4,8 @@ pub(crate) mod label;
 pub(crate) mod responds_to_keyboard;
 pub(crate) mod test_rect;
 pub(crate) mod vsplit;
+pub(crate) mod code_view;
+pub(crate) mod center;
 
 use crate::visualizer::render_object::{RenderObject, RenderObjectIdMaker};
 
