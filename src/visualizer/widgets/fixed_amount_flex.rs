@@ -1,33 +1,3 @@
-use crate::visualizer::graphics;
-
-pub(crate) enum Direction {
-    Horizontal,
-    Vertical,
-}
-
-impl Direction {
-    pub(crate) fn make_vector_in_direction<T>(&self, major_component: T, minor_component: T) -> graphics::Vector2<T> {
-        match self {
-            Direction::Horizontal => graphics::Vector2::new(major_component, minor_component),
-            Direction::Vertical => graphics::Vector2::new(minor_component, major_component),
-        }
-    }
-
-    pub(crate) fn take_major_component<T>(&self, v: graphics::Vector2<T>) -> T {
-        match self {
-            Direction::Horizontal => v.x,
-            Direction::Vertical => v.y,
-        }
-    }
-
-    pub(crate) fn take_minor_component<T>(&self, v: graphics::Vector2<T>) -> T {
-        match self {
-            Direction::Horizontal => v.y,
-            Direction::Vertical => v.x,
-        }
-    }
-}
-
 pub(crate) enum FlexItemSettings {
     Fixed,
     Flex(f32),
@@ -35,10 +5,10 @@ pub(crate) enum FlexItemSettings {
 
 macro_rules! flex {
     (horizontal $($rest:tt)*) => {
-        flex!($crate::visualizer::widgets::fixed_amount_flex::Direction::Horizontal; $($rest)*)
+        flex!($crate::visualizer::widgets::direction::Direction::Horizontal; $($rest)*)
     };
     (vertical $($rest:tt)*) => {
-        flex!($crate::visualizer::widgets::fixed_amount_flex::Direction::Vertical; $($rest)*)
+        flex!($crate::visualizer::widgets::direction::Direction::Vertical; $($rest)*)
     };
     ($direction:expr; $( $name:ident : $settings:expr, $e:expr ),* $(,)?) => {
         {
@@ -133,6 +103,7 @@ macro_rules! flex {
                             max_minor_size = if child_minor_size > max_minor_size { child_minor_size } else { max_minor_size };
                         }
                     )*
+                    self.own_size = $direction.make_vector_in_direction(current_offset, max_minor_size);
                 }
 
                 fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, hover: Option<RenderObjectId>) {

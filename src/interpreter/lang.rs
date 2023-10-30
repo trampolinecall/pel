@@ -73,6 +73,6 @@ pub(crate) enum StmtKind<'file> {
     Return(Expr<'file>),
     MakeVar(VarName, Option<Expr<'file>>),
     AssignVar(VarName, Expr<'file>),
-    If(Expr<'file>, Box<Stmt<'file>>, Option<Box<Stmt<'file>>>),
-    While(Expr<'file>, Box<Stmt<'file>>),
+    If(Span<'file>, Expr<'file>, Box<Stmt<'file>>, Option<Box<Stmt<'file>>>),
+    While(Span<'file>, Expr<'file>, Box<Stmt<'file>>),
 }

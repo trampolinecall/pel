@@ -121,7 +121,7 @@ fn if_statement<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions
 
     let total_span = if_tok.0 + false_branch.as_ref().map(|branch| branch.span).unwrap_or(true_branch.span);
 
-    Ok(Stmt { kind: StmtKind::If(cond, Box::new(true_branch), false_branch.map(Box::new)), span: total_span })
+    Ok(Stmt { kind: StmtKind::If(if_tok.0, cond, Box::new(true_branch), false_branch.map(Box::new)), span: total_span })
 }
 
 fn for_statement<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions, for_tok: Located<Token>) -> Result<Stmt<'file>, ErrorReportedPromise> {
@@ -141,7 +141,7 @@ fn while_statement<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOpti
 
     let total_span = while_tok.0 + body.span;
 
-    Ok(Stmt { kind: StmtKind::While(cond, Box::new(body)), span: total_span })
+    Ok(Stmt { kind: StmtKind::While(while_tok.0, cond, Box::new(body)), span: total_span })
 }
 
 fn break_statement<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions, break_tok: Located<Token>) -> Result<Stmt<'file>, ErrorReportedPromise> {

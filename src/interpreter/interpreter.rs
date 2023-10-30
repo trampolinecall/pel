@@ -348,10 +348,10 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
                 }
             }
 
-            StmtKind::If(cond, t, f) => {
+            StmtKind::If(if_span, cond, t, f) => {
                 let cond_span = cond.span;
                 let cond = interpret_expr(env, cond, co).await?;
-                co.yield_(("check condition".to_string(), stmt.span, env.clone())).await; // TODO: put this at the if span
+                co.yield_(("check condition".to_string(), if_span, env.clone())).await;
                 match cond {
                     Value::Bool(true) => interpret_statement(env, *t, co).await,
                     Value::Bool(false) => {
@@ -364,9 +364,9 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
                 }
             }
 
-            StmtKind::While(cond, body) => loop {
+            StmtKind::While(while_span, cond, body) => loop {
                 let cond_value = interpret_expr(env, cond.clone(), co).await?;
-                co.yield_(("check condition".to_string(), stmt.span, env.clone())).await; // TODO: put this at the while span
+                co.yield_(("check condition".to_string(), while_span, env.clone())).await;
                 match cond_value {
                     Value::Bool(true) => {}
                     Value::Bool(false) => break Ok(()),

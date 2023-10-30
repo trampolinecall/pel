@@ -1,11 +1,13 @@
 pub(crate) mod center;
 pub(crate) mod clickable;
 pub(crate) mod code_view;
+pub(crate) mod direction;
 pub(crate) mod either;
 pub(crate) mod empty;
 pub(crate) mod expand;
 #[macro_use]
 pub(crate) mod fixed_amount_flex;
+pub(crate) mod homogeneous_flow;
 pub(crate) mod label;
 pub(crate) mod responds_to_keyboard;
 pub(crate) mod test_rect;
