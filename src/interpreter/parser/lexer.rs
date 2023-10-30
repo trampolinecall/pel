@@ -164,6 +164,7 @@ impl<'file> Lexer<'file> {
             '.' => Located(sp_1, Token::Period),
             ',' => Located(sp_1, Token::Comma),
 
+            // TODO: fix spans of multi character symbol tokens (they still use sp_1)
             '=' => {
                 if self.check_peek_matches_and_consume('=') {
                     Located(sp_1, Token::DoubleEqual)

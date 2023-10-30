@@ -40,7 +40,7 @@ pub(crate) fn code_view<'file, Data: 'file>(span: Span<'file>) -> impl Widget<Da
                         contents: line_contents,
                         // TODO: these should actually be if the span overlaps with the line range in order to handle the middle lines of a multiline span
                         highlight_start: if line_bounds.contains(&span.start) { Some(span.start - line_bounds.start) } else { None },
-                        highlight_end: if line_bounds.contains(&span.end) { Some(span.end - line_bounds.start) } else { None },
+                        highlight_end: if line_bounds.contains(&(span.end.saturating_sub(1))) { Some(span.end - line_bounds.start) } else { None },
                     },
                 )
             })
@@ -93,14 +93,11 @@ impl<'file, Data> RenderObject<Data> for LineViewRenderObject<'file> {
             let highlight_start_pos = text.find_character_pos(start);
             let highlight_end_pos = text.find_character_pos(end);
 
-            let mut start_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(highlight_start_pos, graphics::Vector2f::new(10.0, 10.0)));
-            let mut end_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(highlight_end_pos, graphics::Vector2f::new(10.0, 10.0)));
+            let mut highlight_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(highlight_start_pos, graphics::Vector2f::new(highlight_end_pos.x - highlight_start_pos.x, self.size.y)));
 
-            start_rect.set_fill_color(graphics::Color::GREEN);
-            end_rect.set_fill_color(graphics::Color::GREEN);
+            highlight_rect.set_fill_color(graphics::Color::GREEN);
 
-            target.draw(&start_rect);
-            target.draw(&end_rect);
+            target.draw(&highlight_rect);
         }
 
         target.draw(&text);
