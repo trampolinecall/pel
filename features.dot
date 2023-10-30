@@ -112,14 +112,13 @@ digraph G {
 
     procedures -> "lexical scope"
     functions -> procedures
-    "lambdas" -> "return values"
     "lambdas" -> functions
 
     "initialization checking" -> "lexical scope"
 
     "class and instance" -> "static typing"
     "fields and methods" -> "class and instance"
-    "fields and methods" -> "return values"
+    "fields and methods" -> functions
     "interface and implements" -> "fields and methods"
     "inheritence" -> "fields and methods"
 
