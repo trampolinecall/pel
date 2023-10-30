@@ -7,6 +7,8 @@ pub(crate) mod flex;
 pub(crate) mod empty;
 pub(crate) mod expand;
 pub(crate) mod label;
+pub(crate) mod max_size;
+pub(crate) mod min_size;
 pub(crate) mod responds_to_keyboard;
 pub(crate) mod test_rect;
 pub(crate) mod vsplit;

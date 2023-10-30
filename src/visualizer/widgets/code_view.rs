@@ -1,6 +1,7 @@
 use sfml::graphics::{Shape, Transformable};
 
 use crate::visualizer::widgets::flex;
+use crate::visualizer::widgets::min_size::MinSize;
 use crate::{
     source::Span,
     visualizer::{
@@ -38,12 +39,15 @@ pub(crate) fn code_view<'file, Data: 'file>(span: Span<'file>) -> impl Widget<Da
             .map(|(line_bounds, line_contents)| {
                 (
                     flex::ItemSettings::Fixed,
-                    LineView {
-                        contents: line_contents,
-                        // TODO: these should actually be if the span overlaps with the line range in order to handle the middle lines of a multiline span
-                        highlight_start: if line_bounds.contains(&span.start) { Some(span.start - line_bounds.start) } else { None },
-                        highlight_end: if line_bounds.contains(&(span.end.saturating_sub(1))) { Some(span.end - line_bounds.start) } else { None },
-                    },
+                    MinSize::new(
+                        LineView {
+                            contents: line_contents,
+                            // TODO: these should actually be if the span overlaps with the line range in order to handle the middle lines of a multiline span
+                            highlight_start: if line_bounds.contains(&span.start) { Some(span.start - line_bounds.start) } else { None },
+                            highlight_end: if line_bounds.contains(&(span.end.saturating_sub(1))) { Some(span.end - line_bounds.start) } else { None },
+                        },
+                        graphics::Vector2f::new(0.0, 20.0), // TODO: don't hardcode minimum height
+                    ),
                 )
             })
             .collect(),
@@ -95,7 +99,8 @@ impl<'file, Data> RenderObject<Data> for LineViewRenderObject<'file> {
             let highlight_start_pos = text.find_character_pos(start);
             let highlight_end_pos = text.find_character_pos(end);
 
-            let mut highlight_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(highlight_start_pos, graphics::Vector2f::new(highlight_end_pos.x - highlight_start_pos.x, self.size.y)));
+            let mut highlight_rect =
+                graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(highlight_start_pos, graphics::Vector2f::new(highlight_end_pos.x - highlight_start_pos.x, self.size.y)));
 
             highlight_rect.set_fill_color(graphics::Color::rgb(50, 100, 50));
 

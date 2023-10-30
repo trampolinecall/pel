@@ -72,8 +72,8 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
             |interpreter: &mut _| interpreter.step(),
             flex! {
                 horizontal
-                code_view: ItemSettings::Flex(1.0), code_view,
-                msg: ItemSettings::Fixed, msg,
+                code_view: ItemSettings::Flex(0.8), code_view,
+                msg: ItemSettings::Flex(0.2), msg,
             },
         )
     }
