@@ -1,20 +1,25 @@
-use std::{fmt::Display, ops::Add};
+use std::{
+    fmt::Display,
+    ops::{Add, Range},
+};
+
+use line_span::LineSpanExt;
 
 pub(crate) struct File {
     pub(crate) name: String,
     pub(crate) source: String,
-    pub(crate) lines: Vec<String>,
+    pub(crate) lines: Vec<(Range<usize>, String)>,
     _dont_construct: (),
 }
 
 impl File {
     pub(crate) fn new(name: String, source: String) -> Self {
-        let lines = source.lines().map(String::from).collect();
+        let lines = source.line_spans().map(|line_span| (line_span.range(), line_span.as_str().to_string())).collect();
         Self { name, source, lines, _dont_construct: () }
     }
 
     pub(crate) fn eof_span(&self) -> Span<'_> {
-        Span { file: self, start: self.source.len(), end: self.source.len() }
+        Span { file: self, start: self.source.len(), end: self.source.len(), _dont_construct: () }
     }
 }
 
@@ -26,26 +31,16 @@ pub(crate) struct Location<'file> {
 
 #[derive(Copy, Clone)]
 pub(crate) struct Span<'file> {
-    file: &'file File,
-    start: usize,
-    end: usize,
+    pub(crate) file: &'file File,
+    pub(crate) start: usize,
+    pub(crate) end: usize,
+
+    _dont_construct: (),
 }
 impl Span<'_> {
     pub(crate) fn new_from_start_and_end(file: &File, start: usize, end: usize) -> Span<'_> {
         assert!(start <= end, "cannot have span that ends earlier than it starts");
-        Span { file, start, end }
-    }
-
-    pub(crate) fn file(&self) -> &File {
-        self.file
-    }
-
-    pub(crate) fn start(&self) -> usize {
-        self.start
-    }
-
-    pub(crate) fn end(&self) -> usize {
-        self.end
+        Span { file, start, end, _dont_construct: () }
     }
 }
 
@@ -54,7 +49,7 @@ impl<'a> Add for Span<'a> {
 
     fn add(self, rhs: Self) -> Self::Output {
         assert!(std::ptr::eq(self.file, rhs.file), "cannot join two spans from different files");
-        Span { file: self.file, start: std::cmp::min(self.start, rhs.start), end: std::cmp::max(self.end, rhs.end) }
+        Span { file: self.file, start: std::cmp::min(self.start, rhs.start), end: std::cmp::max(self.end, rhs.end), _dont_construct: () }
     }
 }
 

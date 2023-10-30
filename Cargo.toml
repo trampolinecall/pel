@@ -9,5 +9,6 @@ edition = "2021"
 async-recursion = "1.0.5"
 font-kit = "0.11.0"
 genawaiter = "0.99.1"
+line-span = "0.1.5"
 num-bigint = "0.4.4"
 sfml = { version = "0.20.0", features = ["graphics"] }

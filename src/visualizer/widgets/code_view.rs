@@ -1,5 +1,6 @@
-use sfml::graphics::{Transformable, Shape};
+use sfml::graphics::{Shape, Transformable};
 
+use crate::visualizer::widgets::flex;
 use crate::{
     source::Span,
     visualizer::{
@@ -9,59 +10,99 @@ use crate::{
     },
 };
 
-pub(crate) struct CodeView<'file> {
-    span: Span<'file>, // TODO: secondary spans, arrows, ...
+pub(crate) struct LineView<'file> {
+    contents: &'file str,
+    highlight_start: Option<usize>,
+    highlight_end: Option<usize>,
 }
 
-pub(crate) struct CodeViewRenderObject<'file> {
+pub(crate) struct LineViewRenderObject<'file> {
     id: RenderObjectId,
-    span: Span<'file>,
+    contents: &'file str,
+    highlight_start: Option<usize>,
+    highlight_end: Option<usize>,
     size: graphics::Vector2f,
     _private: (),
 }
 
-impl<'file> CodeView<'file> {
-    pub(crate) fn new(span: Span<'file>) -> Self {
-        Self { span }
-    }
+// TODO: secondary spans, messages, ...
+// TODO: scrolling
+pub(crate) fn code_view<'file, Data: 'file>(span: Span<'file>) -> impl Widget<Data> + 'file {
+    flex::homogeneous::Flow::new(
+        flex::Direction::Vertical,
+        span.file
+            .lines
+            .iter()
+            .map(|(line_bounds, line_contents)| {
+                (
+                    flex::ItemSettings::Fixed,
+                    LineView {
+                        contents: line_contents,
+                        // TODO: these should actually be if the span overlaps with the line range in order to handle the middle lines of a multiline span
+                        highlight_start: if line_bounds.contains(&span.start) { Some(span.start - line_bounds.start) } else { None },
+                        highlight_end: if line_bounds.contains(&span.end) { Some(span.end - line_bounds.start) } else { None },
+                    },
+                )
+            })
+            .collect(),
+    )
 }
 
-impl<'file, Data> Widget<Data> for CodeView<'file> {
-    type Result = CodeViewRenderObject<'file>;
+impl<'file, Data> Widget<Data> for LineView<'file> {
+    type Result = LineViewRenderObject<'file>;
 
     fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        CodeViewRenderObject { id: id_maker.next_id(), size: graphics::Vector2f::new(0.0, 0.0), _private: (), span: self.span }
+        LineViewRenderObject {
+            id: id_maker.next_id(),
+            size: graphics::Vector2f::new(0.0, 0.0),
+            _private: (),
+            contents: self.contents,
+            highlight_start: self.highlight_start,
+            highlight_end: self.highlight_end,
+        }
     }
 
     fn update_render_object(self, render_object: &mut Self::Result, _: &mut RenderObjectIdMaker) {
-        render_object.span = self.span;
+        // TODO: animate this
+        render_object.contents = self.contents;
+        render_object.highlight_start = self.highlight_start;
+        render_object.highlight_end = self.highlight_end;
     }
 }
 
-impl<'file, Data> RenderObject<Data> for CodeViewRenderObject<'file> {
+impl<'file, Data> RenderObject<Data> for LineViewRenderObject<'file> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
-        let text = graphics::Text::new(&self.span.file().source, &graphics_context.font, 15); // TODO: control font size
+        let text = graphics::Text::new(self.contents, &graphics_context.font, 15); // TODO: control font size
         self.size = sc.clamp_size(text.global_bounds().size());
     }
 
     fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, _: Option<RenderObjectId>) {
         // TODO: deal with overflow (clipping does not work because the bounding box does not include descenders)
         // util::clip(graphics_context, target, graphics::FloatRect::from_vecs(top_left, self.size), |target, top_left| {
-        let mut text = graphics::Text::new(&self.span.file().source, &graphics_context.font, 15); // TODO: control font size
+        let mut text = graphics::Text::new(self.contents, &graphics_context.font, 15); // TODO: control font size
         text.set_position(top_left);
         text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
-                                                     //
-        let highlight_start_pos = text.find_character_pos(self.span.start());
-        let highlight_end_pos = text.find_character_pos(self.span.end());
 
-        let mut start_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(highlight_start_pos, graphics::Vector2f::new(10.0, 10.0)));
-        let mut end_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(highlight_end_pos, graphics::Vector2f::new(10.0, 10.0)));
+        let highlight = match (self.highlight_start, self.highlight_end) {
+            (None, None) => None,
+            (None, Some(end)) => Some((0, end)),
+            (Some(start), None) => Some((start, self.contents.len())),
+            (Some(start), Some(end)) => Some((start, end)),
+        };
+        if let Some((start, end)) = highlight {
+            let highlight_start_pos = text.find_character_pos(start);
+            let highlight_end_pos = text.find_character_pos(end);
 
-        start_rect.set_fill_color(graphics::Color::GREEN);
-        end_rect.set_fill_color(graphics::Color::GREEN);
+            let mut start_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(highlight_start_pos, graphics::Vector2f::new(10.0, 10.0)));
+            let mut end_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(highlight_end_pos, graphics::Vector2f::new(10.0, 10.0)));
 
-        target.draw(&start_rect);
-        target.draw(&end_rect);
+            start_rect.set_fill_color(graphics::Color::GREEN);
+            end_rect.set_fill_color(graphics::Color::GREEN);
+
+            target.draw(&start_rect);
+            target.draw(&end_rect);
+        }
+
         target.draw(&text);
         // });
     }

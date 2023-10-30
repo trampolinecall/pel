@@ -24,7 +24,7 @@ pub(crate) mod _layout {
     ) {
         match item_settings {
             ItemSettings::Fixed => {
-                item.layout(graphics_context, sc);
+                item.layout(graphics_context, sc.with_no_min());
                 *major_size_left -= direction.take_major_component(item.size());
             }
             ItemSettings::Flex(scale) => {
