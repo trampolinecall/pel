@@ -55,7 +55,7 @@ impl<Data, Left: RenderObject<Data>, Right: RenderObject<Data>> RenderObject<Dat
         let half_sc = layout::SizeConstraints { min: graphics::Vector2f::new(sc.min.x / 2.0, sc.min.y), max: graphics::Vector2f::new(sc.max.x / 2.0, sc.max.y) };
         self.left.layout(graphics_context, half_sc);
         self.right.layout(graphics_context, half_sc);
-        self.size = self.left.size() + self.right.size();
+        self.size = sc.clamp_size(self.left.size() + self.right.size());
     }
 
     fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, hover: Option<RenderObjectId>) {

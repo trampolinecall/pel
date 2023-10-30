@@ -84,7 +84,7 @@ macro_rules! flex {
                             *offset = $crate::visualizer::widgets::flex::_layout::third_phase_step($direction, &mut major_offset, &mut max_minor_size, child);
                         }
                     )*
-                    self.own_size = $direction.make_vector_in_direction(major_offset, max_minor_size);
+                    self.own_size = sc.clamp_size($direction.make_vector_in_direction(major_offset, max_minor_size));
                 }
 
                 fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, hover: Option<RenderObjectId>) {
