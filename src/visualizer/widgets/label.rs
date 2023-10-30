@@ -36,14 +36,14 @@ impl<Data> Widget<Data> for Label {
 
 impl<Data> RenderObject<Data> for LabelRenderObject {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
-        let text = graphics::Text::new(&self.text, &graphics_context.font, 15); // TODO: control font size
+        let text = graphics::Text::new(&self.text, &graphics_context.text_font, 15); // TODO: control font size
         self.size = sc.clamp_size(text.global_bounds().size());
     }
 
     fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, _: Option<RenderObjectId>) {
         // TODO: deal with overflow (clipping does not work because the bounding box does not include descenders)
         // util::clip(graphics_context, target, graphics::FloatRect::from_vecs(top_left, self.size), |target, top_left| {
-        let mut text = graphics::Text::new(&self.text, &graphics_context.font, 15); // TODO: control font size
+        let mut text = graphics::Text::new(&self.text, &graphics_context.text_font, 15); // TODO: control font size
         text.set_position(top_left);
         text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
         target.draw(&text);

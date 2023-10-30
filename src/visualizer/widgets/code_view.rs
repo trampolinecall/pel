@@ -15,6 +15,8 @@ pub(crate) struct LineView<'file> {
     highlight_start: Option<usize>,
     highlight_end: Option<usize>,
 }
+// TODO: fixed line height (bounding boxes of a single line do not seem to have a fixed height on their own)
+// TODO: padding between lines
 
 pub(crate) struct LineViewRenderObject<'file> {
     id: RenderObjectId,
@@ -25,7 +27,7 @@ pub(crate) struct LineViewRenderObject<'file> {
     _private: (),
 }
 
-// TODO: secondary spans, messages, ...
+// TODO: secondary spans with other messages, ...
 // TODO: scrolling
 pub(crate) fn code_view<'file, Data: 'file>(span: Span<'file>) -> impl Widget<Data> + 'file {
     flex::homogeneous::Flow::new(
@@ -72,14 +74,14 @@ impl<'file, Data> Widget<Data> for LineView<'file> {
 
 impl<'file, Data> RenderObject<Data> for LineViewRenderObject<'file> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
-        let text = graphics::Text::new(self.contents, &graphics_context.font, 15); // TODO: control font size
+        let text = graphics::Text::new(self.contents, &graphics_context.monospace_font, 15); // TODO: control font size
         self.size = sc.clamp_size(text.global_bounds().size());
     }
 
     fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, _: Option<RenderObjectId>) {
         // TODO: deal with overflow (clipping does not work because the bounding box does not include descenders)
         // util::clip(graphics_context, target, graphics::FloatRect::from_vecs(top_left, self.size), |target, top_left| {
-        let mut text = graphics::Text::new(self.contents, &graphics_context.font, 15); // TODO: control font size
+        let mut text = graphics::Text::new(self.contents, &graphics_context.monospace_font, 15); // TODO: control font size
         text.set_position(top_left);
         text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
 
@@ -95,7 +97,7 @@ impl<'file, Data> RenderObject<Data> for LineViewRenderObject<'file> {
 
             let mut highlight_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(highlight_start_pos, graphics::Vector2f::new(highlight_end_pos.x - highlight_start_pos.x, self.size.y)));
 
-            highlight_rect.set_fill_color(graphics::Color::GREEN);
+            highlight_rect.set_fill_color(graphics::Color::rgb(50, 100, 50));
 
             target.draw(&highlight_rect);
         }

@@ -23,15 +23,23 @@ pub(crate) fn run<Model, ModelAsWidget: Widget<Model>>(window_name: &'static str
     let mut id_maker = RenderObjectIdMaker::new();
     let graphics_context = {
         // TODO: don't panic?
-        let font_handle = font_kit::source::SystemSource::new()
+        let text_font_handle = font_kit::source::SystemSource::new()
             .select_best_match(&[font_kit::family_name::FamilyName::SansSerif, font_kit::family_name::FamilyName::Serif], &font_kit::properties::Properties::new())
-            .expect("could not find appropriate font");
-        let font = match font_handle {
+            .expect("could not find appropriate text font font");
+        let text_font = match text_font_handle {
             font_kit::handle::Handle::Path { path, font_index: _ } => graphics::Font::from_file(&path.to_string_lossy()).expect("could not load font"), // TODO: figure out how to handle font_index
             font_kit::handle::Handle::Memory { bytes: _, font_index: _ } => unimplemented!("loading font from memory"),
         };
 
-        GraphicsContext { font, default_render_context_settings: sfml::window::ContextSettings { antialiasing_level: 0, ..Default::default() } }
+        let monospace_font_handle = font_kit::source::SystemSource::new()
+            .select_best_match(&[font_kit::family_name::FamilyName::Monospace], &font_kit::properties::Properties::new())
+            .expect("could not find appropriate monospace font");
+        let monospace_font = match monospace_font_handle {
+            font_kit::handle::Handle::Path { path, font_index: _ } => graphics::Font::from_file(&path.to_string_lossy()).expect("could not load font"), // TODO: figure out how to handle font_index
+            font_kit::handle::Handle::Memory { bytes: _, font_index: _ } => unimplemented!("loading font from memory"),
+        };
+
+        GraphicsContext { text_font, monospace_font, default_render_context_settings: sfml::window::ContextSettings { antialiasing_level: 0, ..Default::default() } }
     };
     let mut render_object = model_to_widget(&model).to_render_object(&mut id_maker);
 

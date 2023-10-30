@@ -38,6 +38,7 @@ impl CenterText for Text<'_> {
 }
 
 pub(crate) struct GraphicsContext {
-    pub(crate) font: SfBox<Font>,
+    pub(crate) text_font: SfBox<Font>,
+    pub(crate) monospace_font: SfBox<Font>,
     pub(crate) default_render_context_settings: sfml::window::ContextSettings,
 }
