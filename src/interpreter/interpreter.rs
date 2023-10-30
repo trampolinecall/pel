@@ -7,8 +7,7 @@ use crate::{
     interpreter::lang::{BinaryOp, Expr, ExprKind, ShortCircuitOp, Stmt, StmtKind, UnaryOp, VarName},
     source::{Located, Span},
     visualizer::widgets::{
-        center::Center, code_view::CodeView, either::Either, empty::Empty, expand::Expand, fixed_amount_flex::FlexItemSettings, label::Label, responds_to_keyboard::RespondsToKeyboard, vsplit::VSplit,
-        Widget,
+        center::Center, code_view::CodeView, either::Either, empty::Empty, expand::Expand, flex::ItemSettings, label::Label, responds_to_keyboard::RespondsToKeyboard, vsplit::VSplit, Widget,
     },
 };
 
@@ -75,8 +74,8 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>>> Interpreter<'fi
             |interpreter: &mut _| interpreter.step(),
             flex! {
                 horizontal
-                code_view: FlexItemSettings::Flex(1.0), code_view,
-                msg: FlexItemSettings::Fixed, msg,
+                code_view: ItemSettings::Flex(1.0), code_view,
+                msg: ItemSettings::Fixed, msg,
             },
         )
     }

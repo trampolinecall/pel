@@ -1,14 +1,9 @@
-pub(crate) enum FlexItemSettings {
-    Fixed,
-    Flex(f32),
-}
-
 macro_rules! flex {
     (horizontal $($rest:tt)*) => {
-        flex!($crate::visualizer::widgets::direction::Direction::Horizontal; $($rest)*)
+        flex!($crate::visualizer::widgets::flex::Direction::Horizontal; $($rest)*)
     };
     (vertical $($rest:tt)*) => {
-        flex!($crate::visualizer::widgets::direction::Direction::Vertical; $($rest)*)
+        flex!($crate::visualizer::widgets::flex::Direction::Vertical; $($rest)*)
     };
     ($direction:expr; $( $name:ident : $settings:expr, $e:expr ),* $(,)?) => {
         {
@@ -17,13 +12,13 @@ macro_rules! flex {
             use $crate::visualizer::{
                 graphics, layout, event,
                 render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker},
-                widgets::{fixed_amount_flex::FlexItemSettings, Widget},
+                widgets::{flex::ItemSettings, Widget},
             };
 
             #[allow(non_camel_case_types)]
             struct Container<Data, $($name: Widget<Data>),*> {
                 $(
-                    $name: (FlexItemSettings, $name),
+                    $name: (ItemSettings, $name),
                 )*
                 _phantom: ::std::marker::PhantomData<fn(&mut Data)>,
             }
@@ -31,7 +26,7 @@ macro_rules! flex {
             struct ContainerRenderObject<Data, $($name: RenderObject<Data>),*> {
                 own_size: graphics::Vector2f,
                 $(
-                    $name: (FlexItemSettings, graphics::Vector2f, $name),
+                    $name: (ItemSettings, graphics::Vector2f, $name),
                 )*
 
                 _phantom: ::std::marker::PhantomData<fn(&mut Data)>,
@@ -66,44 +61,30 @@ macro_rules! flex {
                     let mut major_size_left = $direction.take_major_component(sc.max);
                     $(
                         {
-                            let (ref settings, _, ref mut child) = self.$name;
-                            match settings {
-                                FlexItemSettings::Fixed => {
-                                    child.layout(graphics_context, sc);
-                                    major_size_left -= $direction.take_major_component(child.size());
-                                }
-                                FlexItemSettings::Flex(scale) => {
-                                    total_flex_scale += scale;
-                                }
-                            }
+                            let (settings, _, ref mut child) = self.$name;
+                            $crate::visualizer::widgets::flex::_layout::first_phase_step(graphics_context, sc, $direction, &mut total_flex_scale, &mut major_size_left, settings, child);
                         }
                     )*
 
                     // lay out all of the flex children
                     $(
                         {
-                            let (ref settings, _, ref mut child) = self.$name;
-                            if let FlexItemSettings::Flex(scale) = settings {
-                                let child_sc = layout::SizeConstraints { min: graphics::Vector2f::new(0.0, 0.0), max: $direction.make_vector_in_direction(scale / total_flex_scale * major_size_left, $direction.take_minor_component(sc.max)) };
-                                child.layout(graphics_context, child_sc);
-                            }
+                            let (settings, _, ref mut child) = self.$name;
+                            $crate::visualizer::widgets::flex::_layout::second_phase_step(graphics_context, sc, $direction, total_flex_scale, major_size_left, settings, child);
                         }
                     )*
 
                     // assign each of the offsets and calcaulte own_size
-                    let mut current_offset = 0.0;
+                    let mut major_offset = 0.0;
                     let mut max_minor_size = 0.0;
                     $(
                         #[allow(unused_assignments)]
                         {
                             let (_, ref mut offset, ref mut child) = self.$name;
-                            *offset = $direction.make_vector_in_direction(current_offset, 0.0);
-                            current_offset += $direction.take_major_component(child.size());
-                            let child_minor_size = $direction.take_minor_component(child.size());
-                            max_minor_size = if child_minor_size > max_minor_size { child_minor_size } else { max_minor_size };
+                            *offset = $crate::visualizer::widgets::flex::_layout::third_phase_step(graphics_context, sc, $direction, &mut major_offset, &mut max_minor_size, child);
                         }
                     )*
-                    self.own_size = $direction.make_vector_in_direction(current_offset, max_minor_size);
+                    self.own_size = $direction.make_vector_in_direction(major_offset, max_minor_size);
                 }
 
                 fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, hover: Option<RenderObjectId>) {
