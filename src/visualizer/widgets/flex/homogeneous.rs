@@ -89,7 +89,7 @@ impl<Data, Child: RenderObject<Data>> RenderObject<Data> for FlowRenderObject<Da
         let mut major_offset = 0.0;
         let mut max_minor_size = 0.0;
         for (_, offset, child) in &mut self.children {
-            *offset = _layout::third_phase_step(graphics_context, sc, self.direction, &mut major_offset, &mut max_minor_size, child);
+            *offset = _layout::third_phase_step(self.direction, &mut major_offset, &mut max_minor_size, child);
         }
         self.own_size = self.direction.make_vector_in_direction(major_offset, max_minor_size);
     }

@@ -7,7 +7,7 @@ pub(crate) mod homogeneous;
 pub(crate) mod _layout {
     use crate::visualizer::{
         graphics::{self, GraphicsContext},
-        layout::{self, SizeConstraints},
+        layout::SizeConstraints,
         render_object::RenderObject,
         widgets::flex::{Direction, ItemSettings},
     };
@@ -51,14 +51,7 @@ pub(crate) mod _layout {
     }
 
     #[inline]
-    pub(crate) fn third_phase_step<Data>(
-        graphics_context: &GraphicsContext,
-        sc: SizeConstraints,
-        direction: Direction,
-        major_offset: &mut f32,
-        max_minor_size: &mut f32,
-        item: &impl RenderObject<Data>,
-    ) -> graphics::Vector2f {
+    pub(crate) fn third_phase_step<Data>(direction: Direction, major_offset: &mut f32, max_minor_size: &mut f32, item: &impl RenderObject<Data>) -> graphics::Vector2f {
         let offset = direction.make_vector_in_direction(*major_offset, 0.0);
         *major_offset += direction.take_major_component(item.size());
         let item_minor_size = direction.take_minor_component(item.size());

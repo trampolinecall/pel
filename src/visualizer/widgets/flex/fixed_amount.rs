@@ -81,7 +81,7 @@ macro_rules! flex {
                         #[allow(unused_assignments)]
                         {
                             let (_, ref mut offset, ref mut child) = self.$name;
-                            *offset = $crate::visualizer::widgets::flex::_layout::third_phase_step(graphics_context, sc, $direction, &mut major_offset, &mut max_minor_size, child);
+                            *offset = $crate::visualizer::widgets::flex::_layout::third_phase_step($direction, &mut major_offset, &mut max_minor_size, child);
                         }
                     )*
                     self.own_size = $direction.make_vector_in_direction(major_offset, max_minor_size);
