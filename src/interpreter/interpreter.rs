@@ -42,7 +42,11 @@ impl Vars {
         self.scopes.last_mut().expect("define var when there are no scopes to define in").insert(vname, initializer);
     }
 }
-type InterpretYield<'file> = (String, Span<'file>, Vars);
+struct InterpretYield<'file> {
+    msg: String,
+    highlight: Span<'file>,
+    env: Vars,
+}
 pub(crate) struct Interpreter<'file, F: Future<Output = Result<(), RuntimeError<'file>>>> {
     state: InterpreterState<'file>,
 
@@ -50,7 +54,7 @@ pub(crate) struct Interpreter<'file, F: Future<Output = Result<(), RuntimeError<
 }
 enum InterpreterState<'file> {
     NotStarted,
-    AboutToExecute { msg: String, highlight: Span<'file>, env: Vars },
+    AboutToExecute(InterpretYield<'file>),
     Finished { result: Result<(), RuntimeError<'file>> },
 }
 
@@ -62,7 +66,7 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
     pub(crate) fn view(&self) -> impl Widget<Interpreter<'file, F>> {
         let (code_view, msg) = match &self.state {
             InterpreterState::NotStarted => (Either::new_left(Empty), Label::new("interpreter not started".to_string())),
-            InterpreterState::AboutToExecute { msg, highlight, env: _ } => (Either::new_right(Expand::new(code_view(*highlight))), Label::new(format!("running\n{msg}"))),
+            InterpreterState::AboutToExecute(InterpretYield { msg, highlight, env: _ }) => (Either::new_right(Expand::new(code_view(*highlight))), Label::new(format!("running\n{msg}"))),
             InterpreterState::Finished { result: Ok(()) } => (Either::new_left(Empty), Label::new("interpreter finished successfully".to_string())),
             InterpreterState::Finished { result: Err(err) } => (Either::new_left(Empty), Label::new(format!("interpreter had error: {err}"))),
         };
@@ -81,7 +85,7 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
     fn step(&mut self) {
         match self.state {
             InterpreterState::NotStarted | InterpreterState::AboutToExecute { .. } => match self.interpret_generator.resume() {
-                genawaiter::GeneratorState::Yielded(step) => self.state = InterpreterState::AboutToExecute { msg: step.0, highlight: step.1, env: step.2 },
+                genawaiter::GeneratorState::Yielded(step) => self.state = InterpreterState::AboutToExecute(step),
                 genawaiter::GeneratorState::Complete(res) => self.state = InterpreterState::Finished { result: res },
             },
 
@@ -178,7 +182,7 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
     async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(env: &mut Vars, e: Expr<'file>, co: &ICo<'file>) -> Result<Value, RuntimeError<'file>> {
         match e.kind {
             ExprKind::Var(vname) => {
-                co.yield_((format!("read variable '{vname}'"), e.span, env.clone())).await;
+                co.yield_(InterpretYield { msg: format!("read variable '{vname}'"), highlight: e.span, env: env.clone() }).await;
                 match env.lookup(&vname) {
                     Some(Some(v)) => Ok(v.clone()),
                     Some(None) => Err(RuntimeError::VarUninitialized(e.span, vname)),
@@ -231,7 +235,7 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
                     };
                 }
 
-                co.yield_(("evaluate operation".to_string(), op_span, env.clone())).await; // TODO: put operator in quotes in message
+                co.yield_(InterpretYield { msg: "evaluate operation".to_string(), highlight: op_span, env: env.clone() }).await; // TODO: put operator in quotes in message
                 match op {
                     BinaryOp::Equal => {
                         comparison!(==)
@@ -281,7 +285,7 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
             }
             ExprKind::UnaryOp(Located(operator_span, operator), operand) => {
                 let operand = interpret_expr(env, *operand, co).await?;
-                co.yield_(("evaluate operation".to_string(), operator_span, env.clone())).await;
+                co.yield_(InterpretYield { msg: "evaluate operation".to_string(), highlight: operator_span, env: env.clone() }).await;
                 match operator {
                     UnaryOp::NumericNegate => match operand {
                         Value::Int(i) => Ok(Value::Int(-i)),
@@ -309,7 +313,7 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
 
             StmtKind::Print(v) => {
                 let v = interpret_expr(env, v, co).await?;
-                co.yield_((format!("print value '{v}'"), stmt.span, env.clone())).await;
+                co.yield_(InterpretYield { msg: format!("print value '{v}'"), highlight: stmt.span, env: env.clone() }).await;
                 println!("{v}");
                 Ok(())
             }
@@ -317,21 +321,21 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
             StmtKind::Return(_) => todo!(),
 
             StmtKind::MakeVar(vname, None) => {
-                co.yield_((format!("make uninitialized variable '{vname}'"), stmt.span, env.clone())).await;
+                co.yield_(InterpretYield { msg: format!("make uninitialized variable '{vname}'"), highlight: stmt.span, env: env.clone() }).await;
                 env.define_var(vname.clone(), None);
                 Ok(())
             }
 
             StmtKind::MakeVar(vname, Some(initializer)) => {
                 let initializer = interpret_expr(env, initializer, co).await?;
-                co.yield_((format!("make variable '{vname}' with initializer {initializer}"), stmt.span, env.clone())).await;
+                co.yield_(InterpretYield { msg: format!("make variable '{vname}' with initializer {initializer}"), highlight: stmt.span, env: env.clone() }).await;
                 env.define_var(vname.clone(), Some(initializer));
                 Ok(())
             }
 
             StmtKind::AssignVar(var, v) => {
                 let v = interpret_expr(env, v, co).await?;
-                co.yield_((format!("assign variable '{var}' with value {v}"), stmt.span, env.clone())).await;
+                co.yield_(InterpretYield { msg: format!("assign variable '{var}' with value {v}"), highlight: stmt.span, env: env.clone() }).await;
                 match env.lookup_mut(&var) {
                     Some(v_place) => {
                         *v_place = Some(v);
@@ -348,7 +352,7 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
             StmtKind::If(if_span, cond, t, f) => {
                 let cond_span = cond.span;
                 let cond = interpret_expr(env, cond, co).await?;
-                co.yield_(("check condition".to_string(), if_span, env.clone())).await;
+                co.yield_(InterpretYield { msg: "check condition".to_string(), highlight: if_span, env: env.clone() }).await;
                 match cond {
                     Value::Bool(true) => interpret_statement(env, *t, co).await,
                     Value::Bool(false) => {
@@ -363,7 +367,7 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
 
             StmtKind::While(while_span, cond, body) => loop {
                 let cond_value = interpret_expr(env, cond.clone(), co).await?;
-                co.yield_(("check condition".to_string(), while_span, env.clone())).await;
+                co.yield_(InterpretYield { msg: "check condition".to_string(), highlight: while_span, env: env.clone() }).await;
                 match cond_value {
                     Value::Bool(true) => {}
                     Value::Bool(false) => break Ok(()),

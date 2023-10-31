@@ -11,19 +11,25 @@ use crate::{
     },
 };
 
+enum HighlightStartPosition {
+    Start,
+    Index(usize),
+}
+enum HighlightEndPosition {
+    End,
+    Index(usize),
+}
+
 pub(crate) struct LineView<'file> {
     contents: &'file str,
-    highlight_start: Option<usize>,
-    highlight_end: Option<usize>,
+    highlight: Option<(HighlightStartPosition, HighlightEndPosition)>,
 }
-// TODO: fixed line height (bounding boxes of a single line do not seem to have a fixed height on their own)
 // TODO: padding between lines
 
 pub(crate) struct LineViewRenderObject<'file> {
     id: RenderObjectId,
     contents: &'file str,
-    highlight_start: Option<usize>,
-    highlight_end: Option<usize>,
+    highlight: Option<(HighlightStartPosition, HighlightEndPosition)>,
     size: graphics::Vector2f,
     _private: (),
 }
@@ -37,15 +43,20 @@ pub(crate) fn code_view<'file, Data: 'file>(span: Span<'file>) -> impl Widget<Da
             .lines
             .iter()
             .map(|(line_bounds, line_contents)| {
+                let highlight = {
+                    let highlight_span_overlaps_line_bounds = !(span.end < line_bounds.start || span.start >= line_bounds.end);
+                    if highlight_span_overlaps_line_bounds {
+                        let highlight_start = if span.start < line_bounds.start { HighlightStartPosition::Start } else { HighlightStartPosition::Index(span.start - line_bounds.start) };
+                        let highlight_end = if span.end > line_bounds.end { HighlightEndPosition::End } else { HighlightEndPosition::Index(span.end - line_bounds.start) };
+                        Some((highlight_start, highlight_end))
+                    } else {
+                        None
+                    }
+                };
                 (
                     flex::ItemSettings::Fixed,
                     MinSize::new(
-                        LineView {
-                            contents: line_contents,
-                            // TODO: these should actually be if the span overlaps with the line range in order to handle the middle lines of a multiline span
-                            highlight_start: if line_bounds.contains(&span.start) { Some(span.start - line_bounds.start) } else { None },
-                            highlight_end: if line_bounds.contains(&(span.end.saturating_sub(1))) { Some(span.end - line_bounds.start) } else { None },
-                        },
+                        LineView { contents: line_contents, highlight },
                         graphics::Vector2f::new(0.0, 20.0), // TODO: don't hardcode minimum height
                     ),
                 )
@@ -58,21 +69,13 @@ impl<'file, Data> Widget<Data> for LineView<'file> {
     type Result = LineViewRenderObject<'file>;
 
     fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        LineViewRenderObject {
-            id: id_maker.next_id(),
-            size: graphics::Vector2f::new(0.0, 0.0),
-            _private: (),
-            contents: self.contents,
-            highlight_start: self.highlight_start,
-            highlight_end: self.highlight_end,
-        }
+        LineViewRenderObject { id: id_maker.next_id(), contents: self.contents, highlight: self.highlight, size: graphics::Vector2f::new(0.0, 0.0), _private: () }
     }
 
     fn update_render_object(self, render_object: &mut Self::Result, _: &mut RenderObjectIdMaker) {
         // TODO: animate this
         render_object.contents = self.contents;
-        render_object.highlight_start = self.highlight_start;
-        render_object.highlight_end = self.highlight_end;
+        render_object.highlight = self.highlight;
     }
 }
 
@@ -89,15 +92,17 @@ impl<'file, Data> RenderObject<Data> for LineViewRenderObject<'file> {
         text.set_position(top_left);
         text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
 
-        let highlight = match (self.highlight_start, self.highlight_end) {
-            (None, None) => None,
-            (None, Some(end)) => Some((0, end)),
-            (Some(start), None) => Some((start, self.contents.len())),
-            (Some(start), Some(end)) => Some((start, end)),
-        };
-        if let Some((start, end)) = highlight {
-            let highlight_start_pos = text.find_character_pos(start);
-            let highlight_end_pos = text.find_character_pos(end);
+        if let Some((start, end)) = &self.highlight {
+            let highlight_start_pos = match start {
+                HighlightStartPosition::Start => 0,
+                HighlightStartPosition::Index(i) => *i,
+            };
+            let highlight_end_pos = match end {
+                HighlightEndPosition::End => self.contents.len(),
+                HighlightEndPosition::Index(i) => *i,
+            };
+            let highlight_start_pos = text.find_character_pos(highlight_start_pos);
+            let highlight_end_pos = text.find_character_pos(highlight_end_pos);
 
             let mut highlight_rect =
                 graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(highlight_start_pos, graphics::Vector2f::new(highlight_end_pos.x - highlight_start_pos.x, self.size.y)));
