@@ -1,6 +1,7 @@
 use sfml::graphics::{Shape, Transformable};
 
 use crate::visualizer::render_object::animated::{Animated, Lerpable};
+use crate::visualizer::widgets::expand::Expand;
 use crate::visualizer::widgets::flex;
 use crate::visualizer::widgets::min_size::MinSize;
 use crate::{
@@ -80,7 +81,7 @@ impl Lerpable for HighlightEndPosition {
 // TODO: secondary spans with other messages, ...
 // TODO: scrolling
 pub(crate) fn code_view<'file, Data: 'file>(span: Span<'file>) -> impl Widget<Data> + 'file {
-    flex::homogeneous::Flow::new(
+    Expand::new(flex::homogeneous::Flex::new(
         flex::Direction::Vertical,
         span.file
             .lines
@@ -105,7 +106,7 @@ pub(crate) fn code_view<'file, Data: 'file>(span: Span<'file>) -> impl Widget<Da
                 )
             })
             .collect(),
-    )
+    ))
 }
 
 impl<'file, Data> Widget<Data> for LineView<'file> {

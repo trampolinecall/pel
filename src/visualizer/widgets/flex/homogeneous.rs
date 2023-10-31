@@ -10,13 +10,13 @@ use crate::visualizer::{
     },
 };
 
-pub(crate) struct Flow<Data, Child: Widget<Data>> {
+pub(crate) struct Flex<Data, Child: Widget<Data>> {
     direction: Direction,
     children: Vec<(ItemSettings, Child)>,
 
     _phantom: PhantomData<fn(&mut Data)>,
 }
-pub(crate) struct FlowRenderObject<Data, Child: RenderObject<Data>> {
+pub(crate) struct FlexRenderObject<Data, Child: RenderObject<Data>> {
     direction: Direction,
     children: Vec<(ItemSettings, graphics::Vector2f, Child)>,
 
@@ -26,7 +26,7 @@ pub(crate) struct FlowRenderObject<Data, Child: RenderObject<Data>> {
     _private: (),
 }
 
-impl<Data, Child: Widget<Data>> Flow<Data, Child> {
+impl<Data, Child: Widget<Data>> Flex<Data, Child> {
     pub(crate) fn new(direction: Direction, children: Vec<(ItemSettings, Child)>) -> Self {
         Self { direction, children, _phantom: PhantomData }
     }
@@ -38,11 +38,11 @@ impl<Data, Child: Widget<Data>> Flow<Data, Child> {
     }
 }
 
-impl<Data, Child: Widget<Data>> Widget<Data> for Flow<Data, Child> {
-    type Result = FlowRenderObject<Data, <Child as Widget<Data>>::Result>;
+impl<Data, Child: Widget<Data>> Widget<Data> for Flex<Data, Child> {
+    type Result = FlexRenderObject<Data, <Child as Widget<Data>>::Result>;
 
     fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        FlowRenderObject {
+        FlexRenderObject {
             direction: self.direction,
             children: self.children.into_iter().map(|(settings, child)| (settings, graphics::Vector2f::new(0.0, 0.0), child.to_render_object(id_maker))).collect(),
             own_size: graphics::Vector2f::new(0.0, 0.0),
@@ -71,7 +71,7 @@ impl<Data, Child: Widget<Data>> Widget<Data> for Flow<Data, Child> {
         render_object.children = new_ro_children;
     }
 }
-impl<Data, Child: RenderObject<Data>> RenderObject<Data> for FlowRenderObject<Data, Child> {
+impl<Data, Child: RenderObject<Data>> RenderObject<Data> for FlexRenderObject<Data, Child> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         // lay out fixed elements and count up total flex scaling factors
         let mut total_flex_scale = 0.0;

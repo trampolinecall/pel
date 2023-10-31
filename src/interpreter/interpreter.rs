@@ -6,7 +6,7 @@ use num_bigint::BigInt;
 use crate::{
     interpreter::lang::{BinaryOp, Expr, ExprKind, ShortCircuitOp, Stmt, StmtKind, UnaryOp, VarName},
     source::{Located, Span},
-    visualizer::widgets::{code_view::code_view, either::Either, empty::Empty, expand::Expand, label::Label, responds_to_keyboard::RespondsToKeyboard, Widget},
+    visualizer::widgets::{code_view::code_view, either::Either, empty::Empty, expand::Expand, flex, label::Label, responds_to_keyboard::RespondsToKeyboard, Widget},
 };
 
 #[derive(Default, Clone)]
@@ -66,7 +66,36 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
     pub(crate) fn view(&self) -> impl Widget<Interpreter<'file, F>> {
         let (code_view, msg) = match &self.state {
             InterpreterState::NotStarted => (Either::new_left(Empty), Label::new("interpreter not started".to_string())),
-            InterpreterState::AboutToExecute(InterpretYield { msg, highlight, env: _ }) => (Either::new_right(Expand::new(code_view(*highlight))), Label::new(format!("running\n{msg}"))),
+            InterpreterState::AboutToExecute(InterpretYield { msg, highlight, env }) => {
+                // TODO: hashmap does not preserve order that variables are created
+                // TODO: var and value side by side in table aligned
+                let env_view = flex::homogeneous::Flex::new(
+                    flex::Direction::Vertical,
+                    env.scopes
+                        .iter()
+                        .flat_map(|env_scope| {
+                            env_scope.iter().map(|(var_name, value)| {
+                                (
+                                    flex::ItemSettings::Fixed,
+                                    Label::new(match value { // TODO: min height?
+                                        Some(value) => format!("{var_name}: {value}"),
+                                        None => format!("{var_name}: <uninitialized>"),
+                                    }),
+                                )
+                            })
+                        })
+                        .collect(),
+                );
+
+                (
+                    Either::new_right(flex! {
+                        horizontal
+                        code_view: ItemSettings::Flex(0.8), code_view(*highlight),
+                        env_view: ItemSettings::Flex(0.2), env_view,
+                    }),
+                    Label::new(format!("running\n{msg}")),
+                )
+            }
             InterpreterState::Finished { result: Ok(()) } => (Either::new_left(Empty), Label::new("interpreter finished successfully".to_string())),
             InterpreterState::Finished { result: Err(err) } => (Either::new_left(Empty), Label::new(format!("interpreter had error: {err}"))),
         };
@@ -314,7 +343,7 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
             StmtKind::Print(v) => {
                 let v = interpret_expr(env, v, co).await?;
                 co.yield_(InterpretYield { msg: format!("print value '{v}'"), highlight: stmt.span, env: env.clone() }).await;
-                println!("{v}");
+                println!("{v}"); // TODO: put this into virtual console instead of printlning
                 Ok(())
             }
 
