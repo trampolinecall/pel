@@ -1,3 +1,4 @@
+pub(crate) mod animated;
 pub(crate) mod util;
 
 use crate::visualizer::{event, graphics, layout};

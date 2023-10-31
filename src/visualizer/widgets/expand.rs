@@ -28,7 +28,7 @@ impl<Data, Child: Widget<Data>> Widget<Data> for Expand<Data, Child> {
     type Result = ExpandRenderObject<Data, <Child as Widget<Data>>::Result>;
 
     fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        ExpandRenderObject { child: self.child.to_render_object(id_maker), _phantom: PhantomData}
+        ExpandRenderObject { child: self.child.to_render_object(id_maker), _phantom: PhantomData }
     }
 
     fn update_render_object(self, render_object: &mut Self::Result, id_maker: &mut RenderObjectIdMaker) {
@@ -60,4 +60,3 @@ impl<Data, Child: RenderObject<Data>> RenderObject<Data> for ExpandRenderObject<
     fn targeted_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, event: event::TargetedEvent) {}
     fn general_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, event: event::GeneralEvent) {}
 }
-

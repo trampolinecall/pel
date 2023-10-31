@@ -1,5 +1,6 @@
 use sfml::graphics::{Shape, Transformable};
 
+use crate::visualizer::render_object::animated::{Animated, Lerpable};
 use crate::visualizer::widgets::flex;
 use crate::visualizer::widgets::min_size::MinSize;
 use crate::{
@@ -11,10 +12,12 @@ use crate::{
     },
 };
 
+#[derive(Copy, Clone, Eq, PartialEq)]
 enum HighlightStartPosition {
     Start,
     Index(usize),
 }
+#[derive(Copy, Clone, Eq, PartialEq)]
 enum HighlightEndPosition {
     End,
     Index(usize),
@@ -29,9 +32,49 @@ pub(crate) struct LineView<'file> {
 pub(crate) struct LineViewRenderObject<'file> {
     id: RenderObjectId,
     contents: &'file str,
-    highlight: Option<(HighlightStartPosition, HighlightEndPosition)>,
+    highlight: Animated<Option<(HighlightStartPosition, HighlightEndPosition)>>, // TODO: improve animation
     size: graphics::Vector2f,
     _private: (),
+}
+
+impl Lerpable for Option<(HighlightStartPosition, HighlightEndPosition)> {
+    fn lerp(&self, other: &Self, amount: f64) -> Self {
+        let (start_positions, end_positions) = match (self, other) {
+            (None, None) => return None,
+            (None, Some(end_positions)) => ((HighlightStartPosition::Start, HighlightEndPosition::Index(0)), *end_positions),
+            (Some(start_positions), None) => (*start_positions, (HighlightStartPosition::Start, HighlightEndPosition::Index(0))), // TODO: figure this out better
+            (Some(start_positions), Some(end_positions)) => (*start_positions, *end_positions),
+        };
+
+        let highlight_start_lerped = start_positions.0.lerp(&end_positions.0, amount);
+        let highlight_end_lerped = start_positions.1.lerp(&end_positions.1, amount);
+
+        Some((highlight_start_lerped, highlight_end_lerped))
+    }
+}
+impl Lerpable for HighlightStartPosition {
+    fn lerp(&self, other: &Self, amount: f64) -> Self {
+        // TODO: figure out how to deal with indexes because they cannot be floats
+        let convert_start_to_0 = |position: &_| match position {
+            HighlightStartPosition::Start => 0,
+            HighlightStartPosition::Index(i) => *i,
+        };
+        let start = convert_start_to_0(self);
+        let end = convert_start_to_0(other);
+        HighlightStartPosition::Index(start.lerp(&end, amount))
+    }
+}
+impl Lerpable for HighlightEndPosition {
+    fn lerp(&self, other: &Self, amount: f64) -> Self {
+        // TODO: figure out how to deal with indexes because they cannot be floats
+        let convert_end_to_100 = |position: &_| match position {
+            HighlightEndPosition::End => 100, // TODO: do this better
+            HighlightEndPosition::Index(i) => *i,
+        };
+        let start = convert_end_to_100(self);
+        let end = convert_end_to_100(other);
+        HighlightEndPosition::Index(start.lerp(&end, amount))
+    }
 }
 
 // TODO: secondary spans with other messages, ...
@@ -69,13 +112,12 @@ impl<'file, Data> Widget<Data> for LineView<'file> {
     type Result = LineViewRenderObject<'file>;
 
     fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        LineViewRenderObject { id: id_maker.next_id(), contents: self.contents, highlight: self.highlight, size: graphics::Vector2f::new(0.0, 0.0), _private: () }
+        LineViewRenderObject { id: id_maker.next_id(), contents: self.contents, highlight: Animated::new(self.highlight), size: graphics::Vector2f::new(0.0, 0.0), _private: () }
     }
 
     fn update_render_object(self, render_object: &mut Self::Result, _: &mut RenderObjectIdMaker) {
-        // TODO: animate this
         render_object.contents = self.contents;
-        render_object.highlight = self.highlight;
+        render_object.highlight.update(self.highlight);
     }
 }
 
@@ -92,7 +134,7 @@ impl<'file, Data> RenderObject<Data> for LineViewRenderObject<'file> {
         text.set_position(top_left);
         text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
 
-        if let Some((start, end)) = &self.highlight {
+        if let Some((start, end)) = &self.highlight.get_lerped() {
             let highlight_start_pos = match start {
                 HighlightStartPosition::Start => 0,
                 HighlightStartPosition::Index(i) => *i,
