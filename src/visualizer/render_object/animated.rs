@@ -17,7 +17,7 @@ impl<T> Animated<T> {
     pub(crate) fn get(&self) -> Result<&T, (&T, &T, f64)> {
         if self.last_changed.elapsed() < ANIMATION_DURATION {
             match &self.last {
-                Some(last) => Err((last, &self.current, self.last_changed.elapsed().as_millis() as f64 / ANIMATION_DURATION.as_millis() as f64)),
+                Some(last) => Err((last, &self.current, self.last_changed.elapsed().as_secs_f64() / ANIMATION_DURATION.as_secs_f64())),
                 None => Ok(&self.current),
             }
         } else {
