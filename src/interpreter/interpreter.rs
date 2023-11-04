@@ -37,7 +37,6 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
             InterpreterViewState::NotStarted => make_message("interpreter not started".to_string()),
             InterpreterViewState::AboutToExecute(InterpretYield { msg, highlight, state }) => {
                 // TODO: hashmap does not preserve order that variables are created
-                // TODO: var and value side by side in table aligned
                 let env_view = view_env(&state.env);
 
                 Either::new_right(flex! {
@@ -68,6 +67,7 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
 }
 
 fn view_env<Data>(env: &interpreter::Vars) -> impl Widget<Data> {
+    // TODO: var and value side by side in table aligned
     flex::homogeneous::Flex::new(
         flex::Direction::Vertical,
         env.scopes
