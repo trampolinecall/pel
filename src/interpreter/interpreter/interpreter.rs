@@ -8,7 +8,10 @@ use genawaiter::sync::Co;
 
 use crate::{
     interpreter::{
-        interpreter::interpreter::{type_::Type, value::{Value, ReprValue, DisplayValue}},
+        interpreter::interpreter::{
+            type_::Type,
+            value::{DisplayValue, ReprValue, Value},
+        },
         lang::{BinaryOp, Expr, ExprKind, ShortCircuitOp, Stmt, StmtKind, UnaryOp, VarName},
     },
     source::{Located, Span},

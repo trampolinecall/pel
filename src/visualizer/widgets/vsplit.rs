@@ -34,13 +34,7 @@ impl<Data, Left: Widget<Data>, Right: Widget<Data>> Widget<Data> for VSplit<Data
     type Result = VSplitRenderObject<Data, <Left as Widget<Data>>::Result, <Right as Widget<Data>>::Result>;
 
     fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        VSplitRenderObject {
-            left: self.left.to_render_object(id_maker),
-            right: self.right.to_render_object(id_maker),
-            size: graphics::Vector2f::new(0.0, 0.0),
-            _phantom: PhantomData,
-            _private: (),
-        }
+        VSplitRenderObject { left: self.left.to_render_object(id_maker), right: self.right.to_render_object(id_maker), size: graphics::Vector2f::new(0.0, 0.0), _phantom: PhantomData, _private: () }
     }
 
     fn update_render_object(self, render_object: &mut Self::Result, id_maker: &mut RenderObjectIdMaker) {

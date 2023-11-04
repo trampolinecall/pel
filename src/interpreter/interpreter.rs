@@ -6,7 +6,7 @@ use genawaiter::sync::Gen;
 
 use crate::{
     interpreter::{
-        interpreter::interpreter::{InterpretYield, RuntimeError, value::ReprValue},
+        interpreter::interpreter::{value::ReprValue, InterpretYield, RuntimeError},
         lang::Stmt,
     },
     visualizer::{
@@ -40,7 +40,9 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
                 // TODO: var and value side by side in table aligned
                 let env_view = flex::homogeneous::Flex::new(
                     flex::Direction::Vertical,
-                    state.env.scopes
+                    state
+                        .env
+                        .scopes
                         .iter()
                         .flat_map(|env_scope| {
                             env_scope.iter().map(|(var_name, value)| {
