@@ -37,6 +37,40 @@ pub(crate) enum ShortCircuitOp {
     Or,
     And,
 }
+impl Display for UnaryOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UnaryOp::NumericNegate => write!(f, "-"),
+            UnaryOp::LogicalNegate => write!(f, "!"),
+        }
+    }
+}
+impl Display for BinaryOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BinaryOp::Equal => write!(f, "="),
+            BinaryOp::NotEqual => write!(f, "!="),
+            BinaryOp::Greater => write!(f, ">"),
+            BinaryOp::GreaterEqual => write!(f, "<="),
+            BinaryOp::Less => write!(f, "<"),
+            BinaryOp::LessEqual => write!(f, "<="),
+            BinaryOp::Add => write!(f, "+"),
+            BinaryOp::Subtract => write!(f, "-"),
+            BinaryOp::Multiply => write!(f, "*"),
+            BinaryOp::Divide => write!(f, "/"),
+            BinaryOp::Modulo => write!(f, "%"),
+        }
+    }
+}
+impl Display for ShortCircuitOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ShortCircuitOp::Or => write!(f, "||"),
+            ShortCircuitOp::And => write!(f, "&&"),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub(crate) struct Expr<'file> {
     pub(crate) kind: ExprKind<'file>,

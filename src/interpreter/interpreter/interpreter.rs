@@ -240,7 +240,7 @@ async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(state: &mut 
                     };
                 }
 
-            co.yield_(InterpretYield { msg: "evaluate operation".to_string(), highlight: op_span, state: state.clone() }).await; // TODO: put operator in quotes in message
+            co.yield_(InterpretYield { msg: format!("evaluate operation '{}'", op), highlight: op_span, state: state.clone() }).await;
             match op {
                 BinaryOp::Equal => {
                     comparison!(==)
@@ -290,7 +290,7 @@ async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(state: &mut 
         }
         ExprKind::UnaryOp(Located(operator_span, operator), operand) => {
             let operand = interpret_expr(state, *operand, co).await?;
-            co.yield_(InterpretYield { msg: "evaluate operation".to_string(), highlight: operator_span, state: state.clone() }).await;
+            co.yield_(InterpretYield { msg: format!("evaluate operation '{}'", operator), highlight: operator_span, state: state.clone() }).await;
             match operator {
                 UnaryOp::NumericNegate => match operand {
                     Value::Int(i) => Ok(Value::Int(-i)),
