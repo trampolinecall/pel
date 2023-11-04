@@ -70,23 +70,27 @@ pub(super) struct InterpretYield<'file> {
     pub(super) state: InterpreterState<'file>,
 }
 
-pub(crate) enum RuntimeError<'file> {
-    VarUninitialized(Span<'file>, VarName),
-    VarDoesNotExist(Span<'file>, VarName),
-    InvalidTypeForShortCircuitOp(Span<'file>, ShortCircuitOp, Type),
-    InvalidTypesForBinaryOp(Span<'file>, BinaryOp, Type, Type),
-    InvalidTypeForUnaryOp(Span<'file>, UnaryOp, Type),
-    ExpectedBool(Span<'file>, Type),
+pub(crate) struct RuntimeError<'file> {
+    pub(crate) span: Span<'file>,
+    pub(crate) kind: RuntimeErrorKind,
 }
-impl Display for RuntimeError<'_> {
+pub(crate) enum RuntimeErrorKind {
+    VarUninitialized(VarName),
+    VarDoesNotExist(VarName),
+    InvalidTypeForShortCircuitOp(ShortCircuitOp, Type),
+    InvalidTypesForBinaryOp(BinaryOp, Type, Type),
+    InvalidTypeForUnaryOp(UnaryOp, Type),
+    ExpectedBool(Type),
+}
+impl Display for RuntimeErrorKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RuntimeError::VarUninitialized(_, vn) => write!(f, "variable '{}' is uninitialized", vn),
-            RuntimeError::VarDoesNotExist(_, vn) => write!(f, "variable '{}' does not exist", vn),
-            RuntimeError::InvalidTypeForShortCircuitOp(_, _, _) => todo!(),
-            RuntimeError::InvalidTypesForBinaryOp(_, _, _, _) => todo!(),
-            RuntimeError::InvalidTypeForUnaryOp(_, _, _) => todo!(),
-            RuntimeError::ExpectedBool(_, _) => todo!(),
+            RuntimeErrorKind::VarUninitialized(vn) => write!(f, "variable '{}' is uninitialized", vn),
+            RuntimeErrorKind::VarDoesNotExist(vn) => write!(f, "variable '{}' does not exist", vn),
+            RuntimeErrorKind::InvalidTypeForShortCircuitOp(_, _) => todo!(),
+            RuntimeErrorKind::InvalidTypesForBinaryOp(_, _, _) => todo!(),
+            RuntimeErrorKind::InvalidTypeForUnaryOp(_, _) => todo!(),
+            RuntimeErrorKind::ExpectedBool(_) => todo!(),
         }
     }
 }
@@ -157,7 +161,7 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
                 }
                 None => {
                     eprintln!("error: variable '{var}' does not exist");
-                    Err(RuntimeError::VarDoesNotExist(stmt.span, var))
+                    Err(RuntimeError { span: stmt.span, kind: RuntimeErrorKind::VarDoesNotExist(var) })
                 }
             }
         }
@@ -174,7 +178,7 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
                     }
                     Ok(())
                 }
-                cond => Err(RuntimeError::ExpectedBool(cond_span, cond.type_())),
+                cond => Err(RuntimeError { span: cond_span, kind: RuntimeErrorKind::ExpectedBool(cond.type_()) }),
             }
         }
 
@@ -184,7 +188,7 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
             match cond_value {
                 Value::Bool(true) => {}
                 Value::Bool(false) => break Ok(()),
-                _ => break Err(RuntimeError::ExpectedBool(cond.span, cond_value.type_())),
+                _ => break Err(RuntimeError { span: cond.span, kind: RuntimeErrorKind::ExpectedBool(cond_value.type_()) }),
             }
 
             interpret_statement(state, (*body).clone(), co).await?;
@@ -199,8 +203,8 @@ async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(state: &mut 
             co.yield_(InterpretYield { msg: format!("read variable '{vname}'"), primary_highlight: e.span, secondary_highlights: Vec::new(), state: state.clone() }).await;
             match state.env.lookup(&vname) {
                 Some((_, Some(v))) => Ok(v.clone()),
-                Some((_, None)) => Err(RuntimeError::VarUninitialized(e.span, vname)),
-                None => Err(RuntimeError::VarDoesNotExist(e.span, vname)),
+                Some((_, None)) => Err(RuntimeError { span: e.span, kind: RuntimeErrorKind::VarUninitialized(vname) }),
+                None => Err(RuntimeError { span: e.span, kind: RuntimeErrorKind::VarDoesNotExist(vname) }),
             }
         }
         ExprKind::Int(i) => Ok(Value::Int(i)),
@@ -219,17 +223,17 @@ async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(state: &mut 
                     Value::Bool(true) => Ok(Value::Bool(true)),
                     Value::Bool(false) => match interpret_expr(state, *right, co).await? {
                         a @ Value::Bool(_) => Ok(a),
-                        right => Err(RuntimeError::InvalidTypeForShortCircuitOp(right_span, op, right.type_())),
+                        right => Err(RuntimeError { span: right_span, kind: RuntimeErrorKind::InvalidTypeForShortCircuitOp(op, right.type_()) }),
                     },
-                    left => Err(RuntimeError::InvalidTypeForShortCircuitOp(left_span, op, left.type_())),
+                    left => Err(RuntimeError { span: left_span, kind: RuntimeErrorKind::InvalidTypeForShortCircuitOp(op, left.type_()) }),
                 },
                 ShortCircuitOp::And => match interpret_expr(state, *left, co).await? {
                     Value::Bool(false) => Ok(Value::Bool(false)),
                     Value::Bool(true) => match interpret_expr(state, *right, co).await? {
                         a @ Value::Bool(_) => Ok(a),
-                        right => Err(RuntimeError::InvalidTypeForShortCircuitOp(right_span, op, right.type_())),
+                        right => Err(RuntimeError { span: right_span, kind: RuntimeErrorKind::InvalidTypeForShortCircuitOp(op, right.type_()) }),
                     },
-                    left => Err(RuntimeError::InvalidTypeForShortCircuitOp(left_span, op, left.type_())),
+                    left => Err(RuntimeError { span: left_span, kind: RuntimeErrorKind::InvalidTypeForShortCircuitOp(op, left.type_()) }),
                 },
             }
         }
@@ -244,7 +248,7 @@ async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(state: &mut 
                             (Value::Float(f1), Value::Float(f2)) => Ok(Value::Bool(f1 $op f2)),
                             (Value::String(s1), Value::String(s2)) => Ok(Value::Bool(s1 $op s2)),
                             (Value::Bool(b1), Value::Bool(b2)) => Ok(Value::Bool(b1 $op b2)),
-                            (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(op_span, op, left.type_(), right.type_())),
+                            (left, right) => Err(RuntimeError { span: op_span, kind: RuntimeErrorKind::InvalidTypesForBinaryOp(op, left.type_(), right.type_()) }),
                         }
                     };
                 }
@@ -273,27 +277,27 @@ async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(state: &mut 
                     (Value::Int(i1), Value::Int(i2)) => Ok(Value::Int(i1 + i2)),
                     (Value::Float(f1), Value::Float(f2)) => Ok(Value::Float(f1 + f2)),
                     (Value::String(s1), Value::String(s2)) => Ok(Value::String(s1 + &s2)),
-                    (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(op_span, op, left.type_(), right.type_())),
+                    (left, right) => Err(RuntimeError { span: op_span, kind: RuntimeErrorKind::InvalidTypesForBinaryOp(op, left.type_(), right.type_()) }),
                 },
                 BinaryOp::Subtract => match (left, right) {
                     (Value::Int(i1), Value::Int(i2)) => Ok(Value::Int(i1 - i2)),
                     (Value::Float(f1), Value::Float(f2)) => Ok(Value::Float(f1 - f2)),
-                    (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(op_span, op, left.type_(), right.type_())),
+                    (left, right) => Err(RuntimeError { span: op_span, kind: RuntimeErrorKind::InvalidTypesForBinaryOp(op, left.type_(), right.type_()) }),
                 },
                 BinaryOp::Multiply => match (left, right) {
                     (Value::Int(i1), Value::Int(i2)) => Ok(Value::Int(i1 * i2)),
                     (Value::Float(f1), Value::Float(f2)) => Ok(Value::Float(f1 * f2)),
-                    (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(op_span, op, left.type_(), right.type_())),
+                    (left, right) => Err(RuntimeError { span: op_span, kind: RuntimeErrorKind::InvalidTypesForBinaryOp(op, left.type_(), right.type_()) }),
                 },
                 BinaryOp::Divide => match (left, right) {
                     (Value::Int(i1), Value::Int(i2)) => Ok(Value::Int(i1 / i2)),
                     (Value::Float(f1), Value::Float(f2)) => Ok(Value::Float(f1 / f2)),
-                    (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(op_span, op, left.type_(), right.type_())),
+                    (left, right) => Err(RuntimeError { span: op_span, kind: RuntimeErrorKind::InvalidTypesForBinaryOp(op, left.type_(), right.type_()) }),
                 },
                 BinaryOp::Modulo => match (left, right) {
                     (Value::Int(i1), Value::Int(i2)) => Ok(Value::Int(i1 % i2)),
                     (Value::Float(f1), Value::Float(f2)) => Ok(Value::Float(f1 % f2)),
-                    (left, right) => Err(RuntimeError::InvalidTypesForBinaryOp(op_span, op, left.type_(), right.type_())),
+                    (left, right) => Err(RuntimeError { span: op_span, kind: RuntimeErrorKind::InvalidTypesForBinaryOp(op, left.type_(), right.type_()) }),
                 },
             }
         }
@@ -304,11 +308,11 @@ async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(state: &mut 
                 UnaryOp::NumericNegate => match operand {
                     Value::Int(i) => Ok(Value::Int(-i)),
                     Value::Float(f) => Ok(Value::Float(-f)),
-                    operand => Err(RuntimeError::InvalidTypeForUnaryOp(operator_span, operator, operand.type_())),
+                    operand => Err(RuntimeError { span: operator_span, kind: RuntimeErrorKind::InvalidTypeForUnaryOp(operator, operand.type_()) }),
                 },
                 UnaryOp::LogicalNegate => match operand {
                     Value::Bool(b) => Ok(Value::Bool(!b)),
-                    operand => Err(RuntimeError::InvalidTypeForUnaryOp(operator_span, operator, operand.type_())),
+                    operand => Err(RuntimeError { span: operator_span, kind: RuntimeErrorKind::InvalidTypeForUnaryOp(operator, operand.type_()) }),
                 },
             }
         }

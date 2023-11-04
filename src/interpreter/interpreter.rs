@@ -39,16 +39,20 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
                 // TODO: hashmap does not preserve order that variables are created
                 let env_view = view_env(&state.env);
 
-                Either::new_right(flex! {
+                Either::new_right(Either::new_right(flex! {
                     horizontal
                     code_view: flex::ItemSettings::Flex(0.3), code_view(*highlight, secondary_highlights.clone(), Fonts::text_font, 15, Fonts::monospace_font, 15),
                     program_output: flex::ItemSettings::Flex(0.3), Label::new(state.program_output.clone(), Fonts::monospace_font, 15), // TODO: scrolling, min size, fixed size?, scroll to bottom automatically
                     env_view: flex::ItemSettings::Flex(0.2), env_view,
                     msg: flex::ItemSettings::Flex(0.2), Label::new(format!("running\n{msg}"), Fonts::text_font, 15),
-                })
+                }))
             }
             InterpreterViewState::Finished { result: Ok(()) } => make_message("interpreter finished successfully".to_string()),
-            InterpreterViewState::Finished { result: Err(err) } => make_message(format!("interpreter had error: {err}")),
+            InterpreterViewState::Finished { result: Err(err) } => Either::new_right(Either::new_left(flex! {
+                horizontal
+                code_view: flex::ItemSettings::Flex(0.3), code_view(err.span, Vec::new(), Fonts::text_font, 15, Fonts::monospace_font, 15),
+                msg: flex::ItemSettings::Flex(0.2), Label::new(format!("interpreter had error: {}", err.kind), Fonts::text_font, 15),
+            })),
         };
 
         RespondsToKeyboard::<Self, _, _>::new(sfml::window::Key::Space, |interpreter: &mut _| interpreter.step(), widget)
