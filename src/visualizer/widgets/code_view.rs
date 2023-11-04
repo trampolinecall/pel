@@ -1,15 +1,14 @@
 use sfml::graphics::{Shape, Transformable};
 
-use crate::visualizer::render_object::animated::{Animated, Lerpable};
-use crate::visualizer::widgets::expand::Expand;
-use crate::visualizer::widgets::flex;
-use crate::visualizer::widgets::min_size::MinSize;
 use crate::{
-    source::Span,
+    source::{File, Span},
     visualizer::{
         event, graphics, layout,
-        render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker},
-        widgets::Widget,
+        render_object::{
+            animated::{Animated, Lerpable},
+            RenderObject, RenderObjectId, RenderObjectIdMaker,
+        },
+        widgets::{expand::Expand, flex, min_size::MinSize, Widget},
     },
 };
 
