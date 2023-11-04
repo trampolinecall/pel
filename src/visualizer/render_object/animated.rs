@@ -15,6 +15,21 @@ pub(crate) enum AnimatedValue<'t, T> {
 // TODO: have configurable animation duration
 const ANIMATION_DURATION: Duration = Duration::from_millis(200);
 
+// TODO: allow choice between different easing functions
+fn ease(x: f64) -> f64 {
+    // easing functions stolen from https://gist.github.com/gre/1650294
+    // quartic ease in and out
+    /*
+    if x < 0.5 {
+        8.0 * x.powf(4.0)
+    } else {
+        1.0 - 8.0 * (x - 1.0).powf(4.0)
+    }
+    */
+    // quartic ease out
+    1.0 - (x - 1.0).powf(4.0)
+}
+
 impl<T> Animated<T> {
     pub(crate) fn new(item: T) -> Self {
         Self { last_changed: Instant::now(), current: item, last: None }
@@ -23,7 +38,7 @@ impl<T> Animated<T> {
     pub(crate) fn get(&self) -> AnimatedValue<T> {
         if self.last_changed.elapsed() < ANIMATION_DURATION {
             match &self.last {
-                Some(last) => AnimatedValue::Animating { before: last, after: &self.current, amount: self.last_changed.elapsed().as_secs_f64() / ANIMATION_DURATION.as_secs_f64() },
+                Some(last) => AnimatedValue::Animating { before: last, after: &self.current, amount: ease(self.last_changed.elapsed().as_secs_f64() / ANIMATION_DURATION.as_secs_f64()) },
                 None => AnimatedValue::Steady(&self.current),
             }
         } else {
