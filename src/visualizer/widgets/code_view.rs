@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    hash::Hash,
-};
+use std::{collections::HashMap, hash::Hash};
 
 use sfml::graphics::{Shape, Transformable};
 
@@ -10,7 +7,7 @@ use crate::{
     visualizer::{
         event, graphics, layout,
         render_object::{
-            animated::{Animated, Lerpable},
+            animated::{Animated, AnimatedValue, Lerpable},
             RenderObject, RenderObjectId, RenderObjectIdMaker,
         },
         widgets::{expand::Expand, flex, min_size::MinSize, Widget},
@@ -174,9 +171,9 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
                 match shown_amount {
                     Some(mut a) => {
                         match a.get() {
-                            Ok(HighlightShownAmount::AllShown) | Err((_, HighlightShownAmount::AllShown, _)) => (requested, a), // the highlight is either in the middle of animating in or is completely shown, so allow it to continue unchanged
-                            Ok(HighlightShownAmount::CompressedToRight | HighlightShownAmount::CompressedToLeft)
-                            | Err((_, HighlightShownAmount::CompressedToRight | HighlightShownAmount::CompressedToLeft, _)) => {
+                            AnimatedValue::Steady(HighlightShownAmount::AllShown) | AnimatedValue::Animating { before: _, after: HighlightShownAmount::AllShown, amount: _ } => (requested, a), // the highlight is either in the middle of animating in or is completely shown, so allow it to continue unchanged
+                            AnimatedValue::Steady(HighlightShownAmount::CompressedToRight | HighlightShownAmount::CompressedToLeft)
+                            | AnimatedValue::Animating { before: _, after: HighlightShownAmount::CompressedToRight | HighlightShownAmount::CompressedToLeft, amount: _ } => {
                                 // it really shouldnt be trying to animate towards being compressed to the left but there isnt a way to prove to the type system that so we must do this
                                 // the highlight is either animating out or not shown, so make it animate in
                                 a.update(HighlightShownAmount::AllShown);
@@ -196,13 +193,13 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
 
         // the ones left over (i.e. that are not in the widget / requested by the widget) should be removed
         let left_over = render_object.highlights.drain().filter_map(|(highlight, mut shown)| match shown.get() {
-            Ok(HighlightShownAmount::AllShown) | Err((_, HighlightShownAmount::AllShown, _)) => {
+            AnimatedValue::Steady(HighlightShownAmount::AllShown) | AnimatedValue::Animating { before: _, after: HighlightShownAmount::AllShown, amount: _ } => {
                 // if it is either completely shown or animating in, make it animate out
                 shown.update(HighlightShownAmount::CompressedToRight);
                 Some((highlight, shown))
             }
-            Ok(HighlightShownAmount::CompressedToLeft | HighlightShownAmount::CompressedToRight) => None, // if it is completely hidden, just remove it from the hashmap entirely
-            Err((_, HighlightShownAmount::CompressedToLeft | HighlightShownAmount::CompressedToRight, _)) => Some((highlight, shown)), // if it is in the middle of animating out, allow to continue
+            AnimatedValue::Steady(HighlightShownAmount::CompressedToLeft | HighlightShownAmount::CompressedToRight) => None, // if it is completely hidden, just remove it from the hashmap entirely
+            AnimatedValue::Animating { before: _, after: HighlightShownAmount::CompressedToLeft | HighlightShownAmount::CompressedToRight, amount: _ } => Some((highlight, shown)), // if it is in the middle of animating out, allow to continue
         });
 
         render_object.highlights = requested_highlights.into_iter().chain(left_over).collect();
@@ -239,8 +236,8 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject
                     HighlightShownAmount::CompressedToRight => (1.0, 0.0),
                 };
                 match shown_amount.get() {
-                    Ok(sa) => get_positions_from_shown_amount(*sa),
-                    Err((start_sa, end_sa, lerp_interp_amount)) => {
+                    AnimatedValue::Steady(sa) => get_positions_from_shown_amount(*sa),
+                    AnimatedValue::Animating { before: start_sa, after: end_sa, amount: lerp_interp_amount } => {
                         let (start_left_x, start_width) = get_positions_from_shown_amount(*start_sa);
                         let (end_left_x, end_width) = get_positions_from_shown_amount(*end_sa);
                         (start_left_x.lerp(&end_left_x, lerp_interp_amount), start_width.lerp(&end_width, lerp_interp_amount))

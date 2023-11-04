@@ -7,6 +7,11 @@ pub(crate) struct Animated<T> {
     last: Option<T>,
 }
 
+pub(crate) enum AnimatedValue<'t, T> {
+    Steady(&'t T),
+    Animating { before: &'t T, after: &'t T, amount: f64 },
+}
+
 // TODO: have configurable animation duration
 const ANIMATION_DURATION: Duration = Duration::from_millis(200);
 
@@ -15,14 +20,14 @@ impl<T> Animated<T> {
         Self { last_changed: Instant::now(), current: item, last: None }
     }
 
-    pub(crate) fn get(&self) -> Result<&T, (&T, &T, f64)> {
+    pub(crate) fn get(&self) -> AnimatedValue<T> {
         if self.last_changed.elapsed() < ANIMATION_DURATION {
             match &self.last {
-                Some(last) => Err((last, &self.current, self.last_changed.elapsed().as_secs_f64() / ANIMATION_DURATION.as_secs_f64())),
-                None => Ok(&self.current),
+                Some(last) => AnimatedValue::Animating { before: last, after: &self.current, amount: self.last_changed.elapsed().as_secs_f64() / ANIMATION_DURATION.as_secs_f64() },
+                None => AnimatedValue::Steady(&self.current),
             }
         } else {
-            Ok(&self.current)
+            AnimatedValue::Steady(&self.current)
         }
     }
 }
@@ -42,8 +47,8 @@ impl<T: Eq> Animated<T> {
 impl<T: Lerpable + Copy> Animated<T> {
     pub(crate) fn get_lerped(&self) -> T {
         match self.get() {
-            Ok(s) => *s,
-            Err((start, end, amount)) => start.lerp(end, amount),
+            AnimatedValue::Steady(s) => *s,
+            AnimatedValue::Animating { before, after, amount } => before.lerp(after, amount),
         }
     }
 }
