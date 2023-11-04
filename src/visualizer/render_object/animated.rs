@@ -1,5 +1,6 @@
 use std::time::{Duration, Instant};
 
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct Animated<T> {
     last_changed: Instant,
     current: T,
@@ -31,7 +32,7 @@ impl<T: Eq> Animated<T> {
         if self.current != new {
             let last = std::mem::replace(&mut self.current, new);
             self.last = Some(last);
-            self.last_changed = Instant::now(); // TODO: remove Instant argument from RenderObject methods?
+            self.last_changed = Instant::now();
         } else {
             self.current = new;
         }

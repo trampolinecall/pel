@@ -1,3 +1,8 @@
+use std::{
+    collections::{HashMap, HashSet},
+    hash::Hash,
+};
+
 use sfml::graphics::{Shape, Transformable};
 
 use crate::{
@@ -12,12 +17,12 @@ use crate::{
     },
 };
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 enum HighlightStartPosition {
     Start,
     Index(usize),
 }
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 enum HighlightEndPosition {
     End,
     Index(usize),
@@ -25,16 +30,33 @@ enum HighlightEndPosition {
 
 pub(crate) struct LineView<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font> {
     contents: &'file str,
-    highlight: Option<(HighlightStartPosition, HighlightEndPosition)>,
+    highlight: Option<LineHighlight>, // TODO: multiple highlights?
     get_font: GetFont,
     font_size: u32,
 }
 // TODO: padding between lines
 
+#[derive(PartialEq, Eq)]
+struct LineHighlight {
+    start: HighlightStartPosition,
+    end: HighlightEndPosition,
+    color: graphics::Color,
+}
+impl Hash for LineHighlight {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.start.hash(state);
+        self.end.hash(state);
+        self.color.r.hash(state);
+        self.color.g.hash(state);
+        self.color.b.hash(state);
+        self.color.a.hash(state);
+    }
+}
+
 pub(crate) struct LineViewRenderObject<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font> {
     id: RenderObjectId,
     contents: &'file str,
-    highlight: Animated<Option<(HighlightStartPosition, HighlightEndPosition)>>, // TODO: improve animation
+    highlights: HashMap<LineHighlight, Animated<bool>>,
     size: graphics::Vector2f,
     get_font: GetFont,
     font_size: u32,
@@ -95,7 +117,7 @@ pub(crate) fn code_view<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font 
                     if highlight_span_overlaps_line_bounds {
                         let highlight_start = if span.start < line_bounds.start { HighlightStartPosition::Start } else { HighlightStartPosition::Index(span.start - line_bounds.start) };
                         let highlight_end = if span.end > line_bounds.end { HighlightEndPosition::End } else { HighlightEndPosition::Index(span.end - line_bounds.start) };
-                        Some((highlight_start, highlight_end))
+                        Some(LineHighlight { start: highlight_start, end: highlight_end, color: graphics::Color::rgb(50, 100, 50) })
                     } else {
                         None
                     }
@@ -119,7 +141,15 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
         LineViewRenderObject {
             id: id_maker.next_id(),
             contents: self.contents,
-            highlight: Animated::new(self.highlight),
+            highlights: self
+                .highlight
+                .into_iter()
+                .map(|r| {
+                    let mut a = Animated::new(false);
+                    a.update(true);
+                    (r, a)
+                })
+                .collect(),
             size: graphics::Vector2f::new(0.0, 0.0),
             get_font: self.get_font,
             font_size: self.font_size,
@@ -129,7 +159,46 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
 
     fn update_render_object(self, render_object: &mut Self::Result, _: &mut RenderObjectIdMaker) {
         render_object.contents = self.contents;
-        render_object.highlight.update(self.highlight);
+
+        // the requested highlights are the ones in the widget that should be kept or made
+        let requested_highlights: Vec<_> = self
+            .highlight
+            .into_iter()
+            .map(|requested| {
+                let shown_amount = render_object.highlights.remove(&requested);
+                match shown_amount {
+                    Some(mut a) => {
+                        match a.get() {
+                            Ok(true) | Err((_, true, _)) => (requested, a), // the highlight is either in the middle of animating in or is completely shown, so allow it to continue unchanged
+                            Ok(false) | Err((_, false, _)) => {
+                                // the highlight is either animating out or not shown, so make it animate in
+                                a.update(true);
+                                (requested, a)
+                            }
+                        }
+                    }
+                    None => {
+                        // if a highlight should be shown here but doesnt have an entry in the render object, create one
+                        let mut a = Animated::new(false);
+                        a.update(true);
+                        (requested, a)
+                    }
+                }
+            })
+            .collect(); // TODO: is it possible to do this without collect?
+
+        // the ones left over (i.e. that are not in the widget / requested by the widget) should be removed
+        let left_over = render_object.highlights.drain().filter_map(|(highlight, mut shown)| match shown.get() {
+            Ok(true) | Err((_, true, _)) => {
+                // if it is either completely shown or animating in, make it animate out
+                shown.update(false);
+                Some((highlight, shown))
+            }
+            Ok(false) => None,                              // if it is completely hidden, just remove it from the hashmap entirely
+            Err((_, false, _)) => Some((highlight, shown)), // if it is in the middle of animating out, allow to continue
+        });
+
+        render_object.highlights = requested_highlights.into_iter().chain(left_over).collect();
     }
 }
 
@@ -146,7 +215,7 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject
         text.set_position(top_left);
         text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
 
-        if let Some((start, end)) = &self.highlight.get_lerped() {
+        for (LineHighlight { start, end, color }, shown_amount) in &self.highlights {
             let highlight_start_pos = match start {
                 HighlightStartPosition::Start => 0,
                 HighlightStartPosition::Index(i) => *i,
@@ -158,10 +227,18 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject
             let highlight_start_pos = text.find_character_pos(highlight_start_pos);
             let highlight_end_pos = text.find_character_pos(highlight_end_pos);
 
-            let mut highlight_rect =
-                graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(highlight_start_pos, graphics::Vector2f::new(highlight_end_pos.x - highlight_start_pos.x, self.size.y)));
+            let shown_interp = match shown_amount.get() {
+                Ok(true) => 1.0,
+                Ok(false) => 0.0,
+                Err((start, end, amount)) => (*start as i32 as f32).lerp(&(*end as i32 as f32), amount),
+            };
 
-            highlight_rect.set_fill_color(graphics::Color::rgb(50, 100, 50));
+            let mut highlight_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(
+                highlight_start_pos,
+                graphics::Vector2f::new((highlight_end_pos.x - highlight_start_pos.x) * shown_interp, self.size.y),
+            ));
+
+            highlight_rect.set_fill_color(*color);
 
             target.draw(&highlight_rect);
         }
