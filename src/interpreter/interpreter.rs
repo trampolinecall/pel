@@ -11,7 +11,7 @@ use crate::{
     },
     visualizer::{
         graphics::{self, Fonts},
-        widgets::{code_view::code_view, either::Either, flex, label::Label, min_size::MinSize, responds_to_keyboard::RespondsToKeyboard, Widget},
+        widgets::{code_view::code_view, either::Either, flex, label::Label, min_size::MinSize, padding::Padding, responds_to_keyboard::RespondsToKeyboard, Widget},
     },
 };
 
@@ -42,7 +42,7 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
 
                 Either::new_right(flex! {
                     horizontal
-                    code_view: flex::ItemSettings::Flex(0.8), code_view(*highlight, Fonts::text_font, 15, Fonts::monospace_font, 15),
+                    code_view: flex::ItemSettings::Flex(0.3), code_view(*highlight, Fonts::text_font, 15, Fonts::monospace_font, 15),
                     program_output: flex::ItemSettings::Flex(0.3), Label::new(state.program_output.clone(), Fonts::monospace_font, 15), // TODO: scrolling, min size, fixed size?, scroll to bottom automatically
                     env_view: flex::ItemSettings::Flex(0.2), env_view,
                     msg: flex::ItemSettings::Flex(0.2), Label::new(format!("running\n{msg}"), Fonts::text_font, 15),
@@ -81,8 +81,8 @@ fn view_env<Data>(env: &interpreter::Vars) -> impl Widget<Data> {
                             flex! {
                                 horizontal
 
-                                name: flex::ItemSettings::Flex(0.5), MinSize::new(Label::new(var_name.to_string(), Fonts::text_font, 15), graphics::Vector2f::new(50.0, 0.0)),
-                                value: flex::ItemSettings::Flex(0.5), MinSize::new(
+                                name: flex::ItemSettings::Flex(0.5), Padding::new(MinSize::new(Label::new(var_name.to_string(), Fonts::text_font, 15), graphics::Vector2f::new(50.0, 0.0)), 10.0, 5.0, 10.0, 5.0),
+                                value: flex::ItemSettings::Flex(0.5), Padding::new(MinSize::new(
                                     Label::new(
                                         match value {
                                             Some(value) => ReprValue(value).to_string(),
@@ -92,7 +92,7 @@ fn view_env<Data>(env: &interpreter::Vars) -> impl Widget<Data> {
                                         15,
                                     ),
                                     graphics::Vector2f::new(50.0, 0.0)
-                                ),
+                                ), 10.0, 5.0, 10.0, 5.0),
                             },
                             graphics::Vector2f::new(0.0, 25.0),
                         ),
