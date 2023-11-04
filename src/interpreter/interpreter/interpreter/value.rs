@@ -23,10 +23,12 @@ impl Value {
     }
 }
 
-// TODO: print and repr
-impl Display for Value {
+pub(crate) struct DisplayValue<'v>(pub(crate) &'v Value);
+pub(crate) struct ReprValue<'v>(pub(crate) &'v Value);
+
+impl Display for DisplayValue<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
+        match self.0 {
             Value::Int(i) => {
                 write!(f, "{i}")?;
             }
@@ -35,6 +37,27 @@ impl Display for Value {
             }
             Value::String(s) => {
                 write!(f, "{s}")?;
+            }
+            Value::Bool(b) => {
+                write!(f, "{b}")?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl Display for ReprValue<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.0 {
+            Value::Int(i) => {
+                write!(f, "{i}")?;
+            }
+            Value::Float(fl) => {
+                write!(f, "{fl}")?;
+            }
+            Value::String(s) => {
+                write!(f, "\"{s}\"")?;
             }
             Value::Bool(b) => {
                 write!(f, "{b}")?;

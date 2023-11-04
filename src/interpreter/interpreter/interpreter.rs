@@ -1,5 +1,5 @@
-mod type_;
-mod value;
+pub(super) mod type_;
+pub(super) mod value;
 
 use std::{collections::HashMap, fmt::Display};
 
@@ -8,7 +8,7 @@ use genawaiter::sync::Co;
 
 use crate::{
     interpreter::{
-        interpreter::interpreter::{type_::Type, value::Value},
+        interpreter::interpreter::{type_::Type, value::{Value, ReprValue, DisplayValue}},
         lang::{BinaryOp, Expr, ExprKind, ShortCircuitOp, Stmt, StmtKind, UnaryOp, VarName},
     },
     source::{Located, Span},
@@ -114,8 +114,8 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
 
         StmtKind::Print(v) => {
             let v = interpret_expr(state, v, co).await?;
-            co.yield_(InterpretYield { msg: format!("print value '{v}'"), highlight: stmt.span, state: state.clone() }).await;
-            state.program_output += &v.to_string();
+            co.yield_(InterpretYield { msg: format!("print value {}", ReprValue(&v)), highlight: stmt.span, state: state.clone() }).await;
+            state.program_output += &DisplayValue(&v).to_string();
             state.program_output += "\n";
             Ok(())
         }
@@ -130,14 +130,14 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
 
         StmtKind::MakeVar(vname, Some(initializer)) => {
             let initializer = interpret_expr(state, initializer, co).await?;
-            co.yield_(InterpretYield { msg: format!("make variable '{vname}' with initializer {initializer}"), highlight: stmt.span, state: state.clone() }).await;
+            co.yield_(InterpretYield { msg: format!("make variable '{vname}' with initializer {}", ReprValue(&initializer)), highlight: stmt.span, state: state.clone() }).await;
             state.env.define_var(vname.clone(), Some(initializer));
             Ok(())
         }
 
         StmtKind::AssignVar(var, v) => {
             let v = interpret_expr(state, v, co).await?;
-            co.yield_(InterpretYield { msg: format!("assign variable '{var}' with value {v}"), highlight: stmt.span, state: state.clone() }).await;
+            co.yield_(InterpretYield { msg: format!("assign variable '{var}' with value {}", ReprValue(&v)), highlight: stmt.span, state: state.clone() }).await;
             match state.env.lookup_mut(&var) {
                 Some(v_place) => {
                     *v_place = Some(v);

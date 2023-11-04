@@ -6,7 +6,7 @@ use genawaiter::sync::Gen;
 
 use crate::{
     interpreter::{
-        interpreter::interpreter::{InterpretYield, RuntimeError},
+        interpreter::interpreter::{InterpretYield, RuntimeError, value::ReprValue},
         lang::Stmt,
     },
     visualizer::{
@@ -49,7 +49,7 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
                                     Label::new(
                                         match value {
                                             // TODO: min height?
-                                            Some(value) => format!("{var_name}: {value}"),
+                                            Some(value) => format!("{var_name}: {}", ReprValue(value)),
                                             None => format!("{var_name}: <uninitialized>"),
                                         },
                                         Fonts::text_font,
