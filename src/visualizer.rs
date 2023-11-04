@@ -94,12 +94,6 @@ pub(crate) fn run<Model, ModelAsWidget: Widget<Model>>(window_name: &'static str
             }
         }
 
-        // update
-        /* TODO: update
-        let mut time_since_last_update = std::time::Instant::now() - todo!("last_update");
-        model.update(time_since_last_update);
-        */
-
         // draw
         window.set_active(true);
         model_to_widget(&model).update_render_object(&mut render_object, &mut id_maker);
