@@ -52,7 +52,7 @@ pub(crate) fn run<Model, ModelAsWidget: Widget<Model>>(window_name: &'static str
     window.set_vertical_sync_enabled(true);
 
     while window.is_open() {
-        // TODO: don't duplicate view_top_left?
+        // TODO: this doesnt seem right
         let view_top_left = graphics::Vector2f::new(0.0, 0.0);
 
         // events
@@ -98,7 +98,6 @@ pub(crate) fn run<Model, ModelAsWidget: Widget<Model>>(window_name: &'static str
         window.set_active(true);
         model_to_widget(&model).update_render_object(&mut render_object, &mut id_maker);
 
-        let view_top_left = graphics::Vector2f::new(0.0, 0.0);
         let size_constraints = SizeConstraints { min: graphics::Vector2f::new(0.0, 0.0), max: window.size().as_other() };
 
         render_object.layout(&graphics_context, size_constraints);
