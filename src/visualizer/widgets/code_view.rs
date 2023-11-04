@@ -5,12 +5,14 @@ use sfml::graphics::{Shape, Transformable};
 use crate::{
     source::Span,
     visualizer::{
-        event, graphics, layout,
+        event,
+        graphics::{self, Fonts},
+        layout,
         render_object::{
             animated::{Animated, AnimatedValue, Lerpable},
             RenderObject, RenderObjectId, RenderObjectIdMaker,
         },
-        widgets::{expand::Expand, flex, min_size::MinSize, Widget},
+        widgets::{center::Center, expand::Expand, fixed_size::fixed_size, flex, label::Label, min_size::MinSize, Widget},
     },
 };
 
@@ -107,13 +109,20 @@ impl Lerpable for HighlightEndPosition {
 
 // TODO: secondary spans with other messages, ...
 // TODO: scrolling
-pub(crate) fn code_view<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font + Copy + 'file, Data: 'file>(span: Span<'file>, font: GetFont, font_size: u32) -> impl Widget<Data> + 'file {
+pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font + Copy + 'file, LineNrFont: Fn(&graphics::Fonts) -> &graphics::Font + Copy + 'file, Data: 'file>(
+    span: Span<'file>,
+    line_nr_font: LineNrFont,
+    line_nr_font_size: u32,
+    code_font: CodeFont,
+    code_font_size: u32,
+) -> impl Widget<Data> + 'file {
     Expand::new(flex::homogeneous::Flex::new(
         flex::Direction::Vertical,
         span.file
             .lines
             .iter()
-            .map(|(line_bounds, line_contents)| {
+            .enumerate()
+            .map(|(line_number, (line_bounds, line_contents))| {
                 let highlight = {
                     let highlight_span_overlaps_line_bounds = !(span.end < line_bounds.start || span.start >= line_bounds.end);
                     if highlight_span_overlaps_line_bounds {
@@ -126,10 +135,14 @@ pub(crate) fn code_view<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font 
                 };
                 (
                     flex::ItemSettings::Fixed,
-                    MinSize::new(
-                        LineView { contents: line_contents, highlight, get_font: font, font_size },
-                        graphics::Vector2f::new(0.0, 20.0), // TODO: don't hardcode minimum height
-                    ),
+                    flex! {
+                        horizontal
+                        line_number: flex::ItemSettings::Fixed, fixed_size(Center::new(Label::new((line_number + 1).to_string(), line_nr_font, line_nr_font_size)), graphics::Vector2f::new(20.0, 20.0)), // TODO: also don't hardcode this size
+                        line_view: flex::ItemSettings::Flex(1.0), MinSize::new(
+                            LineView { contents: line_contents, highlight, get_font: code_font, font_size: code_font_size },
+                            graphics::Vector2f::new(0.0, 20.0), // TODO: don't hardcode minimum height
+                        ),
+                    },
                 )
             })
             .collect(),

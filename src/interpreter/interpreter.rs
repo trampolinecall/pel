@@ -98,7 +98,7 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
                 (
                     Either::new_right(flex! {
                         horizontal
-                        code_view: ItemSettings::Flex(0.8), code_view(*highlight, Fonts::monospace_font, 15),
+                        code_view: ItemSettings::Flex(0.8), code_view(*highlight, Fonts::text_font, 15, Fonts::monospace_font, 15),
                         env_view: ItemSettings::Flex(0.2), env_view,
                     }),
                     Label::new(format!("running\n{msg}"), Fonts::text_font, 15),

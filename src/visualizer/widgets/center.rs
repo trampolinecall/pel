@@ -39,7 +39,7 @@ impl<Data, Child: Widget<Data>> Widget<Data> for Center<Data, Child> {
 
 impl<Data, Child: RenderObject<Data>> RenderObject<Data> for CenterRenderObject<Data, Child> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
-        self.child.layout(graphics_context, sc);
+        self.child.layout(graphics_context, sc.with_no_min());
         self.size = sc.max;
     }
 
