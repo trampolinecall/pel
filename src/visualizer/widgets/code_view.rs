@@ -52,11 +52,16 @@ impl Hash for LineHighlight {
         self.color.a.hash(state);
     }
 }
-
+#[derive(Copy, Clone, Eq, PartialEq)]
+enum HighlightShownAmount {
+    CompressedToLeft,
+    AllShown,
+    CompressedToRight,
+}
 pub(crate) struct LineViewRenderObject<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font> {
     id: RenderObjectId,
     contents: &'file str,
-    highlights: HashMap<LineHighlight, Animated<bool>>,
+    highlights: HashMap<LineHighlight, Animated<HighlightShownAmount>>,
     size: graphics::Vector2f,
     get_font: GetFont,
     font_size: u32,
@@ -145,8 +150,8 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
                 .highlight
                 .into_iter()
                 .map(|r| {
-                    let mut a = Animated::new(false);
-                    a.update(true);
+                    let mut a = Animated::new(HighlightShownAmount::CompressedToLeft);
+                    a.update(HighlightShownAmount::AllShown);
                     (r, a)
                 })
                 .collect(),
@@ -169,18 +174,20 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
                 match shown_amount {
                     Some(mut a) => {
                         match a.get() {
-                            Ok(true) | Err((_, true, _)) => (requested, a), // the highlight is either in the middle of animating in or is completely shown, so allow it to continue unchanged
-                            Ok(false) | Err((_, false, _)) => {
+                            Ok(HighlightShownAmount::AllShown) | Err((_, HighlightShownAmount::AllShown, _)) => (requested, a), // the highlight is either in the middle of animating in or is completely shown, so allow it to continue unchanged
+                            Ok(HighlightShownAmount::CompressedToRight | HighlightShownAmount::CompressedToLeft)
+                            | Err((_, HighlightShownAmount::CompressedToRight | HighlightShownAmount::CompressedToLeft, _)) => {
+                                // it really shouldnt be trying to animate towards being compressed to the left but there isnt a way to prove to the type system that so we must do this
                                 // the highlight is either animating out or not shown, so make it animate in
-                                a.update(true);
+                                a.update(HighlightShownAmount::AllShown);
                                 (requested, a)
                             }
                         }
                     }
                     None => {
                         // if a highlight should be shown here but doesnt have an entry in the render object, create one
-                        let mut a = Animated::new(false);
-                        a.update(true);
+                        let mut a = Animated::new(HighlightShownAmount::CompressedToLeft);
+                        a.update(HighlightShownAmount::AllShown);
                         (requested, a)
                     }
                 }
@@ -189,13 +196,13 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
 
         // the ones left over (i.e. that are not in the widget / requested by the widget) should be removed
         let left_over = render_object.highlights.drain().filter_map(|(highlight, mut shown)| match shown.get() {
-            Ok(true) | Err((_, true, _)) => {
+            Ok(HighlightShownAmount::AllShown) | Err((_, HighlightShownAmount::AllShown, _)) => {
                 // if it is either completely shown or animating in, make it animate out
-                shown.update(false);
+                shown.update(HighlightShownAmount::CompressedToRight);
                 Some((highlight, shown))
             }
-            Ok(false) => None,                              // if it is completely hidden, just remove it from the hashmap entirely
-            Err((_, false, _)) => Some((highlight, shown)), // if it is in the middle of animating out, allow to continue
+            Ok(HighlightShownAmount::CompressedToLeft | HighlightShownAmount::CompressedToRight) => None, // if it is completely hidden, just remove it from the hashmap entirely
+            Err((_, HighlightShownAmount::CompressedToLeft | HighlightShownAmount::CompressedToRight, _)) => Some((highlight, shown)), // if it is in the middle of animating out, allow to continue
         });
 
         render_object.highlights = requested_highlights.into_iter().chain(left_over).collect();
@@ -216,26 +223,38 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject
         text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
 
         for (LineHighlight { start, end, color }, shown_amount) in &self.highlights {
-            let highlight_start_pos = match start {
+            let highlight_start_index = match start {
                 HighlightStartPosition::Start => 0,
                 HighlightStartPosition::Index(i) => *i,
             };
-            let highlight_end_pos = match end {
+            let highlight_end_index = match end {
                 HighlightEndPosition::End => self.contents.len(),
                 HighlightEndPosition::Index(i) => *i,
             };
-            let highlight_start_pos = text.find_character_pos(highlight_start_pos);
-            let highlight_end_pos = text.find_character_pos(highlight_end_pos);
 
-            let shown_interp = match shown_amount.get() {
-                Ok(true) => 1.0,
-                Ok(false) => 0.0,
-                Err((start, end, amount)) => (*start as i32 as f32).lerp(&(*end as i32 as f32), amount),
+            let (left_x_interp, width_amount) = {
+                let get_positions_from_shown_amount = |shown_amount| match shown_amount {
+                    HighlightShownAmount::CompressedToLeft => (0.0, 0.0),
+                    HighlightShownAmount::AllShown => (0.0, 1.0),
+                    HighlightShownAmount::CompressedToRight => (1.0, 0.0),
+                };
+                match shown_amount.get() {
+                    Ok(sa) => get_positions_from_shown_amount(*sa),
+                    Err((start_sa, end_sa, lerp_interp_amount)) => {
+                        let (start_left_x, start_width) = get_positions_from_shown_amount(*start_sa);
+                        let (end_left_x, end_width) = get_positions_from_shown_amount(*end_sa);
+                        (start_left_x.lerp(&end_left_x, lerp_interp_amount), start_width.lerp(&end_width, lerp_interp_amount))
+                    }
+                }
             };
 
+            let highlight_start_pos = text.find_character_pos(highlight_start_index);
+            let highlight_end_pos = text.find_character_pos(highlight_end_index);
+            let highlight_width = highlight_end_pos.x - highlight_start_pos.x;
+
             let mut highlight_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(
-                highlight_start_pos,
-                graphics::Vector2f::new((highlight_end_pos.x - highlight_start_pos.x) * shown_interp, self.size.y),
+                highlight_start_pos + graphics::Vector2f::new(left_x_interp * highlight_width, 0.0),
+                graphics::Vector2f::new(highlight_width * width_amount, self.size.y),
             ));
 
             highlight_rect.set_fill_color(*color);
