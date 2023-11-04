@@ -27,7 +27,7 @@ enum HighlightEndPosition {
 
 pub(crate) struct LineView<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font> {
     contents: &'file str,
-    highlight: Option<LineHighlight>, // TODO: multiple highlights?
+    highlight: Vec<LineHighlight>,
     get_font: GetFont,
     font_size: u32,
 }
@@ -108,7 +108,7 @@ impl Lerpable for HighlightEndPosition {
 // TODO: secondary spans with other messages, ...
 // TODO: scrolling
 pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font + Copy + 'file, LineNrFont: Fn(&graphics::Fonts) -> &graphics::Font + Copy + 'file, Data: 'file>(
-    span: Span<'file>,
+    primary_span: Span<'file>,
     line_nr_font: LineNrFont,
     line_nr_font_size: u32,
     code_font: CodeFont,
@@ -116,19 +116,19 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
 ) -> impl Widget<Data> + 'file {
     Expand::new(flex::homogeneous::Flex::new(
         flex::Direction::Vertical,
-        span.file
+        primary_span.file
             .lines
             .iter()
             .enumerate()
             .map(|(line_number, (line_bounds, line_contents))| {
                 let highlight = {
-                    let highlight_span_overlaps_line_bounds = !(span.end < line_bounds.start || span.start >= line_bounds.end);
+                    let highlight_span_overlaps_line_bounds = !(primary_span.end < line_bounds.start || primary_span.start >= line_bounds.end);
                     if highlight_span_overlaps_line_bounds {
-                        let highlight_start = if span.start < line_bounds.start { HighlightStartPosition::Start } else { HighlightStartPosition::Index(span.start - line_bounds.start) };
-                        let highlight_end = if span.end > line_bounds.end { HighlightEndPosition::End } else { HighlightEndPosition::Index(span.end - line_bounds.start) };
-                        Some(LineHighlight { start: highlight_start, end: highlight_end, color: graphics::Color::rgb(50, 100, 50) })
+                        let highlight_start = if primary_span.start < line_bounds.start { HighlightStartPosition::Start } else { HighlightStartPosition::Index(primary_span.start - line_bounds.start) };
+                        let highlight_end = if primary_span.end > line_bounds.end { HighlightEndPosition::End } else { HighlightEndPosition::Index(primary_span.end - line_bounds.start) };
+                        vec![LineHighlight { start: highlight_start, end: highlight_end, color: graphics::Color::rgb(50, 100, 50) }]
                     } else {
-                        None
+                        Vec::new()
                     }
                 };
                 (
