@@ -1,7 +1,7 @@
 use sfml::graphics::{Shape, Transformable};
 
 use crate::{
-    source::{File, Span},
+    source::Span,
     visualizer::{
         event, graphics, layout,
         render_object::{
