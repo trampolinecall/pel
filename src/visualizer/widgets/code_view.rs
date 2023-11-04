@@ -27,7 +27,7 @@ enum HighlightEndPosition {
 
 pub(crate) struct LineView<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font> {
     contents: &'file str,
-    highlight: Vec<LineHighlight>,
+    highlights: Vec<LineHighlight>,
     get_font: GetFont,
     font_size: u32,
 }
@@ -109,11 +109,13 @@ impl Lerpable for HighlightEndPosition {
 // TODO: scrolling
 pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font + Copy + 'file, LineNrFont: Fn(&graphics::Fonts) -> &graphics::Font + Copy + 'file, Data: 'file>(
     primary_span: Span<'file>,
+    secondary_highlights: impl IntoIterator<Item = (Span<'file>, graphics::Color)>,
     line_nr_font: LineNrFont,
     line_nr_font_size: u32,
     code_font: CodeFont,
     code_font_size: u32,
 ) -> impl Widget<Data> + 'file {
+    let secondary_highlights: Vec<_> = secondary_highlights.into_iter().collect();
     Expand::new(flex::homogeneous::Flex::new(
         flex::Direction::Vertical,
         primary_span
@@ -122,24 +124,26 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
             .iter()
             .enumerate()
             .map(|(line_number, (line_bounds, line_contents))| {
-                let highlight = {
-                    let highlight_span_overlaps_line_bounds = !(primary_span.end < line_bounds.start || primary_span.start >= line_bounds.end);
-                    if highlight_span_overlaps_line_bounds {
-                        let highlight_start =
-                            if primary_span.start < line_bounds.start { HighlightStartPosition::Start } else { HighlightStartPosition::Index(primary_span.start - line_bounds.start) };
-                        let highlight_end = if primary_span.end > line_bounds.end { HighlightEndPosition::End } else { HighlightEndPosition::Index(primary_span.end - line_bounds.start) };
-                        vec![LineHighlight { start: highlight_start, end: highlight_end, color: graphics::Color::rgb(50, 100, 50) }]
-                    } else {
-                        Vec::new()
-                    }
-                };
+                let highlights_on_line = std::iter::once(&(primary_span, graphics::Color::rgb(50, 100, 50)))
+                    .chain(secondary_highlights.iter())
+                    .flat_map(|(span, color)| {
+                        let highlight_span_overlaps_line_bounds = !(span.end < line_bounds.start || span.start >= line_bounds.end);
+                        if highlight_span_overlaps_line_bounds {
+                            let highlight_start = if span.start < line_bounds.start { HighlightStartPosition::Start } else { HighlightStartPosition::Index(span.start - line_bounds.start) };
+                            let highlight_end = if span.end > line_bounds.end { HighlightEndPosition::End } else { HighlightEndPosition::Index(span.end - line_bounds.start) };
+                            Some(LineHighlight { start: highlight_start, end: highlight_end, color: *color })
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
                 (
                     flex::ItemSettings::Fixed,
                     flex! {
                         horizontal
                         line_number: flex::ItemSettings::Fixed, fixed_size(Center::new(Label::new((line_number + 1).to_string(), line_nr_font, line_nr_font_size)), graphics::Vector2f::new(20.0, 20.0)), // TODO: also don't hardcode this size, also TODO: line numbers should really be right aligned, not centered
                         line_view: flex::ItemSettings::Flex(1.0), MinSize::new(
-                            LineView { contents: line_contents, highlight, get_font: code_font, font_size: code_font_size },
+                            LineView { contents: line_contents, highlights: highlights_on_line, get_font: code_font, font_size: code_font_size },
                             graphics::Vector2f::new(0.0, 20.0), // TODO: don't hardcode minimum height
                         ),
                     },
@@ -157,7 +161,7 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
             id: id_maker.next_id(),
             contents: self.contents,
             highlights: self
-                .highlight
+                .highlights
                 .into_iter()
                 .map(|r| {
                     let mut a = Animated::new(HighlightShownAmount::CompressedToLeft);
@@ -177,7 +181,7 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
 
         // the requested highlights are the ones in the widget that should be kept or made
         let requested_highlights: Vec<_> = self
-            .highlight
+            .highlights
             .into_iter()
             .map(|requested| {
                 let shown_amount = render_object.highlights.remove(&requested);

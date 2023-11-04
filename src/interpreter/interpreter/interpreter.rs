@@ -5,6 +5,7 @@ use std::{collections::HashMap, fmt::Display};
 
 use async_recursion::async_recursion;
 use genawaiter::sync::Co;
+use sfml::graphics::Color;
 
 use crate::{
     interpreter::{
@@ -18,22 +19,22 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub(super) struct InterpreterState {
-    pub(super) env: Vars,
+pub(super) struct InterpreterState<'file> {
+    pub(super) env: Vars<'file>,
     pub(super) program_output: String,
 }
-impl InterpreterState {
+impl InterpreterState<'_> {
     pub(super) fn new() -> Self {
         Self { env: Vars { scopes: Vec::new() }, program_output: String::new() }
     }
 }
 
 #[derive(Clone)]
-pub(super) struct Vars {
-    pub(super) scopes: Vec<HashMap<VarName, Option<Value>>>,
+pub(super) struct Vars<'file> {
+    pub(super) scopes: Vec<HashMap<VarName, (Span<'file>, Option<Value>)>>,
 }
-impl Vars {
-    fn lookup(&self, vname: &VarName) -> Option<&Option<Value>> {
+impl<'file> Vars<'file> {
+    fn lookup(&self, vname: &VarName) -> Option<&(Span<'file>, Option<Value>)> {
         for scope in self.scopes.iter().rev() {
             if let Some(result) = scope.get(vname) {
                 return Some(result);
@@ -41,7 +42,7 @@ impl Vars {
         }
         None
     }
-    fn lookup_mut(&mut self, vname: &VarName) -> Option<&mut Option<Value>> {
+    fn lookup_mut(&mut self, vname: &VarName) -> Option<&mut (Span<'file>, Option<Value>)> {
         for scope in self.scopes.iter_mut().rev() {
             if let Some(result) = scope.get_mut(vname) {
                 return Some(result);
@@ -57,15 +58,16 @@ impl Vars {
         self.scopes.pop();
     }
 
-    fn define_var(&mut self, vname: VarName, initializer: Option<Value>) {
-        self.scopes.last_mut().expect("define var when there are no scopes to define in").insert(vname, initializer);
+    fn define_var(&mut self, vname: VarName, span: Span<'file>, initializer: Option<Value>) {
+        self.scopes.last_mut().expect("define var when there are no scopes to define in").insert(vname, (span, initializer));
     }
 }
 
 pub(super) struct InterpretYield<'file> {
     pub(super) msg: String,
-    pub(super) highlight: Span<'file>,
-    pub(super) state: InterpreterState,
+    pub(super) primary_highlight: Span<'file>,
+    pub(super) secondary_highlights: Vec<(Span<'file>, Color)>,
+    pub(super) state: InterpreterState<'file>,
 }
 
 pub(crate) enum RuntimeError<'file> {
@@ -95,7 +97,7 @@ pub(super) async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) ->
 }
 
 #[async_recursion]
-async fn interpret_statements<'parent, 'parents: 'parent, 'file>(state: &mut InterpreterState, stmts: Vec<Stmt<'file>>, co: &ICo<'file>) -> Result<(), RuntimeError<'file>> {
+async fn interpret_statements<'parent, 'parents: 'parent, 'file>(state: &mut InterpreterState<'file>, stmts: Vec<Stmt<'file>>, co: &ICo<'file>) -> Result<(), RuntimeError<'file>> {
     state.env.start_scope();
     for stmt in stmts {
         interpret_statement(state, stmt, co).await?;
@@ -106,7 +108,7 @@ async fn interpret_statements<'parent, 'parents: 'parent, 'file>(state: &mut Int
 }
 
 #[async_recursion]
-async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut InterpreterState, stmt: Stmt<'file>, co: &ICo<'file>) -> Result<(), RuntimeError<'file>> {
+async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut InterpreterState<'file>, stmt: Stmt<'file>, co: &ICo<'file>) -> Result<(), RuntimeError<'file>> {
     match stmt.kind {
         StmtKind::Block(stmts) => interpret_statements(state, stmts, co).await,
 
@@ -117,7 +119,7 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
 
         StmtKind::Print(v) => {
             let v = interpret_expr(state, v, co).await?;
-            co.yield_(InterpretYield { msg: format!("print value {}", ReprValue(&v)), highlight: stmt.span, state: state.clone() }).await;
+            co.yield_(InterpretYield { msg: format!("print value {}", ReprValue(&v)), primary_highlight: stmt.span, secondary_highlights: Vec::new(), state: state.clone() }).await;
             state.program_output += &DisplayValue(&v).to_string();
             state.program_output += "\n";
             Ok(())
@@ -126,24 +128,31 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
         StmtKind::Return(_) => todo!(),
 
         StmtKind::MakeVar(vname, None) => {
-            co.yield_(InterpretYield { msg: format!("make uninitialized variable '{vname}'"), highlight: stmt.span, state: state.clone() }).await;
-            state.env.define_var(vname.clone(), None);
+            co.yield_(InterpretYield { msg: format!("make uninitialized variable '{vname}'"), primary_highlight: stmt.span, secondary_highlights: Vec::new(), state: state.clone() }).await;
+            state.env.define_var(vname.clone(), stmt.span, None);
             Ok(())
         }
 
         StmtKind::MakeVar(vname, Some(initializer)) => {
             let initializer = interpret_expr(state, initializer, co).await?;
-            co.yield_(InterpretYield { msg: format!("make variable '{vname}' with initializer {}", ReprValue(&initializer)), highlight: stmt.span, state: state.clone() }).await;
-            state.env.define_var(vname.clone(), Some(initializer));
+            co.yield_(InterpretYield {
+                msg: format!("make variable '{vname}' with initializer {}", ReprValue(&initializer)),
+                primary_highlight: stmt.span,
+                secondary_highlights: Vec::new(),
+                state: state.clone(),
+            })
+            .await;
+            state.env.define_var(vname.clone(), stmt.span, Some(initializer));
             Ok(())
         }
 
         StmtKind::AssignVar(var, v) => {
             let v = interpret_expr(state, v, co).await?;
-            co.yield_(InterpretYield { msg: format!("assign variable '{var}' with value {}", ReprValue(&v)), highlight: stmt.span, state: state.clone() }).await;
+            co.yield_(InterpretYield { msg: format!("assign variable '{var}' with value {}", ReprValue(&v)), primary_highlight: stmt.span, secondary_highlights: Vec::new(), state: state.clone() })
+                .await;
             match state.env.lookup_mut(&var) {
                 Some(v_place) => {
-                    *v_place = Some(v);
+                    v_place.1 = Some(v);
                     Ok(())
                 }
                 None => {
@@ -156,7 +165,7 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
         StmtKind::If(if_span, cond, t, f) => {
             let cond_span = cond.span;
             let cond = interpret_expr(state, cond, co).await?;
-            co.yield_(InterpretYield { msg: "check condition".to_string(), highlight: if_span, state: state.clone() }).await;
+            co.yield_(InterpretYield { msg: "check condition".to_string(), primary_highlight: if_span, secondary_highlights: Vec::new(), state: state.clone() }).await;
             match cond {
                 Value::Bool(true) => interpret_statement(state, *t, co).await,
                 Value::Bool(false) => {
@@ -171,7 +180,7 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
 
         StmtKind::While(while_span, cond, body) => loop {
             let cond_value = interpret_expr(state, cond.clone(), co).await?;
-            co.yield_(InterpretYield { msg: "check condition".to_string(), highlight: while_span, state: state.clone() }).await;
+            co.yield_(InterpretYield { msg: "check condition".to_string(), primary_highlight: while_span, secondary_highlights: Vec::new(), state: state.clone() }).await;
             match cond_value {
                 Value::Bool(true) => {}
                 Value::Bool(false) => break Ok(()),
@@ -184,13 +193,13 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
 }
 
 #[async_recursion]
-async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(state: &mut InterpreterState, e: Expr<'file>, co: &ICo<'file>) -> Result<Value, RuntimeError<'file>> {
+async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(state: &mut InterpreterState<'file>, e: Expr<'file>, co: &ICo<'file>) -> Result<Value, RuntimeError<'file>> {
     match e.kind {
         ExprKind::Var(vname) => {
-            co.yield_(InterpretYield { msg: format!("read variable '{vname}'"), highlight: e.span, state: state.clone() }).await;
+            co.yield_(InterpretYield { msg: format!("read variable '{vname}'"), primary_highlight: e.span, secondary_highlights: Vec::new(), state: state.clone() }).await;
             match state.env.lookup(&vname) {
-                Some(Some(v)) => Ok(v.clone()),
-                Some(None) => Err(RuntimeError::VarUninitialized(e.span, vname)),
+                Some((_, Some(v))) => Ok(v.clone()),
+                Some((_, None)) => Err(RuntimeError::VarUninitialized(e.span, vname)),
                 None => Err(RuntimeError::VarDoesNotExist(e.span, vname)),
             }
         }
@@ -240,7 +249,7 @@ async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(state: &mut 
                     };
                 }
 
-            co.yield_(InterpretYield { msg: format!("evaluate operation '{}'", op), highlight: op_span, state: state.clone() }).await;
+            co.yield_(InterpretYield { msg: format!("evaluate operation '{}'", op), primary_highlight: op_span, secondary_highlights: Vec::new(), state: state.clone() }).await;
             match op {
                 BinaryOp::Equal => {
                     comparison!(==)
@@ -290,7 +299,7 @@ async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(state: &mut 
         }
         ExprKind::UnaryOp(Located(operator_span, operator), operand) => {
             let operand = interpret_expr(state, *operand, co).await?;
-            co.yield_(InterpretYield { msg: format!("evaluate operation '{}'", operator), highlight: operator_span, state: state.clone() }).await;
+            co.yield_(InterpretYield { msg: format!("evaluate operation '{}'", operator), primary_highlight: operator_span, secondary_highlights: Vec::new(), state: state.clone() }).await;
             match operator {
                 UnaryOp::NumericNegate => match operand {
                     Value::Int(i) => Ok(Value::Int(-i)),
