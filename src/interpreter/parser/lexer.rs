@@ -88,7 +88,6 @@ impl<'file> Lexer<'file> {
         }
 
         if self.peek() == Some('.') {
-            // TODO: check next character to only consume if the dot is followed by a digit
             self.1.next();
             while self.peek().map_or(false, |c| c.is_ascii_digit()) {
                 self.1.next();
@@ -133,7 +132,6 @@ impl<'file> Lexer<'file> {
         let Some((start_ind, c)) = self.1.next() else {
             return Located(self.0.eof_span(), Token::Eof);
         };
-        let sp_1 = self.span_from(start_ind);
 
         match c {
             '/' if self.peek() == Some('/') => {
@@ -154,94 +152,94 @@ impl<'file> Lexer<'file> {
 
             ' ' | '\n' | '\t' => self.next(),
 
-            '(' => Located(sp_1, Token::OParen),
-            ')' => Located(sp_1, Token::CParen),
-            '[' => Located(sp_1, Token::OBrack),
-            ']' => Located(sp_1, Token::CBrack),
-            '{' => Located(sp_1, Token::OBrace),
-            '}' => Located(sp_1, Token::CBrace),
-            ';' => Located(sp_1, Token::Semicolon),
-            '.' => Located(sp_1, Token::Period),
-            ',' => Located(sp_1, Token::Comma),
+            '(' => Located(self.span_from(start_ind), Token::OParen),
+            ')' => Located(self.span_from(start_ind), Token::CParen),
+            '[' => Located(self.span_from(start_ind), Token::OBrack),
+            ']' => Located(self.span_from(start_ind), Token::CBrack),
+            '{' => Located(self.span_from(start_ind), Token::OBrace),
+            '}' => Located(self.span_from(start_ind), Token::CBrace),
+            ';' => Located(self.span_from(start_ind), Token::Semicolon),
+            '.' => Located(self.span_from(start_ind), Token::Period),
+            ',' => Located(self.span_from(start_ind), Token::Comma),
 
-            // TODO: fix spans of multi character symbol tokens (they still use sp_1)
+            // TODO: fix spans of multi character symbol tokens (they still use self.span_from(start_ind))
             '=' => {
                 if self.check_peek_matches_and_consume('=') {
-                    Located(sp_1, Token::DoubleEqual)
+                    Located(self.span_from(start_ind), Token::DoubleEqual)
                 } else {
-                    Located(sp_1, Token::Equal)
+                    Located(self.span_from(start_ind), Token::Equal)
                 }
             }
             '!' => {
                 if self.check_peek_matches_and_consume('=') {
-                    Located(sp_1, Token::BangEqual)
+                    Located(self.span_from(start_ind), Token::BangEqual)
                 } else {
-                    Located(sp_1, Token::Bang)
+                    Located(self.span_from(start_ind), Token::Bang)
                 }
             }
             '+' => {
                 if self.check_peek_matches_and_consume('=') {
-                    Located(sp_1, Token::PlusEqual)
+                    Located(self.span_from(start_ind), Token::PlusEqual)
                 } else {
-                    Located(sp_1, Token::Plus)
+                    Located(self.span_from(start_ind), Token::Plus)
                 }
             }
             '-' => {
                 if self.check_peek_matches_and_consume('=') {
-                    Located(sp_1, Token::MinusEqual)
+                    Located(self.span_from(start_ind), Token::MinusEqual)
                 } else {
-                    Located(sp_1, Token::Minus)
+                    Located(self.span_from(start_ind), Token::Minus)
                 }
             }
             '*' => {
                 if self.check_peek_matches_and_consume('=') {
-                    Located(sp_1, Token::StarEqual)
+                    Located(self.span_from(start_ind), Token::StarEqual)
                 } else {
-                    Located(sp_1, Token::Star)
+                    Located(self.span_from(start_ind), Token::Star)
                 }
             }
             '/' => {
                 if self.check_peek_matches_and_consume('=') {
-                    Located(sp_1, Token::SlashEqual)
+                    Located(self.span_from(start_ind), Token::SlashEqual)
                 } else {
-                    Located(sp_1, Token::Slash)
+                    Located(self.span_from(start_ind), Token::Slash)
                 }
             }
             '%' => {
                 if self.check_peek_matches_and_consume('=') {
-                    Located(sp_1, Token::PercentEqual)
+                    Located(self.span_from(start_ind), Token::PercentEqual)
                 } else {
-                    Located(sp_1, Token::Percent)
+                    Located(self.span_from(start_ind), Token::Percent)
                 }
             }
 
             '|' => {
                 if self.check_peek_matches_and_consume('|') {
-                    Located(sp_1, Token::DoublePipe)
+                    Located(self.span_from(start_ind), Token::DoublePipe)
                 } else {
-                    Located(sp_1, Token::Pipe)
+                    Located(self.span_from(start_ind), Token::Pipe)
                 }
             }
             '&' => {
                 if self.check_peek_matches_and_consume('&') {
-                    Located(sp_1, Token::DoubleAmper)
+                    Located(self.span_from(start_ind), Token::DoubleAmper)
                 } else {
-                    Located(sp_1, Token::Amper)
+                    Located(self.span_from(start_ind), Token::Amper)
                 }
             }
 
             '>' => {
                 if self.check_peek_matches_and_consume('=') {
-                    Located(sp_1, Token::GreaterEqual)
+                    Located(self.span_from(start_ind), Token::GreaterEqual)
                 } else {
-                    Located(sp_1, Token::Greater)
+                    Located(self.span_from(start_ind), Token::Greater)
                 }
             }
             '<' => {
                 if self.check_peek_matches_and_consume('=') {
-                    Located(sp_1, Token::LessEqual)
+                    Located(self.span_from(start_ind), Token::LessEqual)
                 } else {
-                    Located(sp_1, Token::Less)
+                    Located(self.span_from(start_ind), Token::Less)
                 }
             }
 
@@ -249,7 +247,7 @@ impl<'file> Lexer<'file> {
             c if c.is_ascii_alphabetic() || c == '_' => self.alpha_iden(start_ind),
 
             _ => {
-                LexError::BadCharacter(sp_1, c).report();
+                LexError::BadCharacter(self.span_from(start_ind), c).report();
                 self.next()
             }
         }
