@@ -45,6 +45,10 @@ impl<T> Animated<T> {
             AnimatedValue::Steady(&self.current)
         }
     }
+
+    pub(crate) fn get_current(&self) -> &T {
+        &self.current
+    }
 }
 
 impl<T: PartialEq> Animated<T> {
@@ -93,3 +97,9 @@ impl_lerpable_for_numeric!(u16);
 impl_lerpable_for_numeric!(u32);
 impl_lerpable_for_numeric!(u64);
 impl_lerpable_for_numeric!(usize);
+
+impl<T: Lerpable> Lerpable for sfml::system::Vector2<T> {
+    fn lerp(&self, other: &Self, amount: f64) -> Self {
+        Self { x: self.x.lerp(&other.x, amount), y: self.y.lerp(&other.y, amount) }
+    }
+}

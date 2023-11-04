@@ -104,8 +104,9 @@ impl Lerpable for HighlightEndPosition {
     }
 }
 
-// TODO: secondary spans with other messages, ...
+// TODO: messages
 // TODO: scrolling
+// TODO: syntax highlighting
 pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font + Copy + 'file, LineNrFont: Fn(&graphics::Fonts) -> &graphics::Font + Copy + 'file, Data: 'file>(
     primary_highlight: (Span<'file>, graphics::Color),
     secondary_highlights: impl IntoIterator<Item = (Span<'file>, graphics::Color)>,
