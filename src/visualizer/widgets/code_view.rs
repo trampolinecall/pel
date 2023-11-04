@@ -116,7 +116,8 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
 ) -> impl Widget<Data> + 'file {
     Expand::new(flex::homogeneous::Flex::new(
         flex::Direction::Vertical,
-        primary_span.file
+        primary_span
+            .file
             .lines
             .iter()
             .enumerate()
@@ -124,7 +125,8 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
                 let highlight = {
                     let highlight_span_overlaps_line_bounds = !(primary_span.end < line_bounds.start || primary_span.start >= line_bounds.end);
                     if highlight_span_overlaps_line_bounds {
-                        let highlight_start = if primary_span.start < line_bounds.start { HighlightStartPosition::Start } else { HighlightStartPosition::Index(primary_span.start - line_bounds.start) };
+                        let highlight_start =
+                            if primary_span.start < line_bounds.start { HighlightStartPosition::Start } else { HighlightStartPosition::Index(primary_span.start - line_bounds.start) };
                         let highlight_end = if primary_span.end > line_bounds.end { HighlightEndPosition::End } else { HighlightEndPosition::Index(primary_span.end - line_bounds.start) };
                         vec![LineHighlight { start: highlight_start, end: highlight_end, color: graphics::Color::rgb(50, 100, 50) }]
                     } else {
