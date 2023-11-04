@@ -1,3 +1,4 @@
+// TODO: make a macro to just make the struct
 macro_rules! flex {
     (horizontal $($rest:tt)*) => {
         flex!($crate::visualizer::widgets::flex::Direction::Horizontal; $($rest)*)
