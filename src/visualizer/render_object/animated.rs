@@ -32,8 +32,8 @@ impl<T> Animated<T> {
     }
 }
 
-impl<T: Eq> Animated<T> {
-    pub(crate) fn update(&mut self, new: T) {
+impl<T: PartialEq> Animated<T> {
+    pub(crate) fn set(&mut self, new: T) {
         if self.current != new {
             let last = std::mem::replace(&mut self.current, new);
             self.last = Some(last);

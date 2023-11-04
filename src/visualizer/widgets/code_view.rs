@@ -148,7 +148,7 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
                 .into_iter()
                 .map(|r| {
                     let mut a = Animated::new(HighlightShownAmount::CompressedToLeft);
-                    a.update(HighlightShownAmount::AllShown);
+                    a.set(HighlightShownAmount::AllShown);
                     (r, a)
                 })
                 .collect(),
@@ -176,7 +176,7 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
                             | AnimatedValue::Animating { before: _, after: HighlightShownAmount::CompressedToRight | HighlightShownAmount::CompressedToLeft, amount: _ } => {
                                 // it really shouldnt be trying to animate towards being compressed to the left but there isnt a way to prove to the type system that so we must do this
                                 // the highlight is either animating out or not shown, so make it animate in
-                                a.update(HighlightShownAmount::AllShown);
+                                a.set(HighlightShownAmount::AllShown);
                                 (requested, a)
                             }
                         }
@@ -184,7 +184,7 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
                     None => {
                         // if a highlight should be shown here but doesnt have an entry in the render object, create one
                         let mut a = Animated::new(HighlightShownAmount::CompressedToLeft);
-                        a.update(HighlightShownAmount::AllShown);
+                        a.set(HighlightShownAmount::AllShown);
                         (requested, a)
                     }
                 }
@@ -195,7 +195,7 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
         let left_over = render_object.highlights.drain().filter_map(|(highlight, mut shown)| match shown.get() {
             AnimatedValue::Steady(HighlightShownAmount::AllShown) | AnimatedValue::Animating { before: _, after: HighlightShownAmount::AllShown, amount: _ } => {
                 // if it is either completely shown or animating in, make it animate out
-                shown.update(HighlightShownAmount::CompressedToRight);
+                shown.set(HighlightShownAmount::CompressedToRight);
                 Some((highlight, shown))
             }
             AnimatedValue::Steady(HighlightShownAmount::CompressedToLeft | HighlightShownAmount::CompressedToRight) => None, // if it is completely hidden, just remove it from the hashmap entirely
