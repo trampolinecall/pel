@@ -60,10 +60,11 @@ impl<Data, Child: Widget<Data>> Widget<Data> for Padding<Data, Child> {
 impl<Data, Child: RenderObject<Data>> RenderObject<Data> for PaddingRenderObject<Data, Child> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         self.child.layout(graphics_context, sc);
-        self.size = self.child.size() + graphics::Vector2f::new(self.left.get_lerped() + self.right.get_lerped(), self.top.get_lerped() + self.bottom.get_lerped());
+        self.size = sc.clamp_size(self.child.size() + graphics::Vector2f::new(self.left.get_lerped() + self.right.get_lerped(), self.top.get_lerped() + self.bottom.get_lerped()));
     }
 
     fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, hover: Option<RenderObjectId>) {
+        // TODO: calculate offset better in order to account for cases where the padding must be cut off because it would be too big to fit in the size constraints
         self.child.draw(graphics_context, target, top_left + graphics::Vector2f::new(self.left.get_lerped(), self.top.get_lerped()), hover);
     }
 
