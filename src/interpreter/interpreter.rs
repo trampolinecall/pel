@@ -8,7 +8,7 @@ use crate::{
     source::{Located, Span},
     visualizer::{
         graphics::Fonts,
-        widgets::{code_view::code_view, either::Either, empty::Empty, expand::Expand, flex, label::Label, responds_to_keyboard::RespondsToKeyboard, Widget},
+        widgets::{code_view::code_view, either::Either, empty::Empty, flex, label::Label, responds_to_keyboard::RespondsToKeyboard, Widget},
     },
 };
 
@@ -68,8 +68,9 @@ pub(crate) fn new_interpreter(stmts: Vec<Stmt>) -> Interpreter<impl Future<Outpu
 }
 impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpreter<'file, F> {
     pub(crate) fn view(&self) -> impl Widget<Interpreter<'file, F>> {
-        let (code_view, msg) = match &self.state {
-            InterpreterState::NotStarted => (Either::new_left(Empty), Label::new("interpreter not started".to_string(), Fonts::text_font, 15)),
+        let make_message = |message| Either::new_left(Label::new(message, Fonts::text_font, 15));
+        let widget = match &self.state {
+            InterpreterState::NotStarted => make_message("interpreter not started".to_string()),
             InterpreterState::AboutToExecute(InterpretYield { msg, highlight, env, program_output }) => {
                 // TODO: hashmap does not preserve order that variables are created
                 // TODO: var and value side by side in table aligned
@@ -96,29 +97,19 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
                         .collect(),
                 );
 
-                (
-                    Either::new_right(flex! {
-                        horizontal
-                        code_view: ItemSettings::Flex(0.8), code_view(*highlight, Fonts::text_font, 15, Fonts::monospace_font, 15),
-                        program_output: ItemSettings::Flex(0.3), Label::new(program_output.clone(), Fonts::monospace_font, 15), // TODO: scrolling, min size, fixed size?
-                        env_view: ItemSettings::Flex(0.2), env_view,
-                    }),
-                    Label::new(format!("running\n{msg}"), Fonts::text_font, 15),
-                )
+                Either::new_right(flex! {
+                    horizontal
+                    code_view: ItemSettings::Flex(0.8), code_view(*highlight, Fonts::text_font, 15, Fonts::monospace_font, 15),
+                    program_output: ItemSettings::Flex(0.3), Label::new(program_output.clone(), Fonts::monospace_font, 15), // TODO: scrolling, min size, fixed size?, scroll to bottom automatically
+                    env_view: ItemSettings::Flex(0.2), env_view,
+                    msg: ItemSettings::Flex(0.2), Label::new(format!("running\n{msg}"), Fonts::text_font, 15),
+                })
             }
-            InterpreterState::Finished { result: Ok(()) } => (Either::new_left(Empty), Label::new("interpreter finished successfully".to_string(), Fonts::text_font, 15)),
-            InterpreterState::Finished { result: Err(err) } => (Either::new_left(Empty), Label::new(format!("interpreter had error: {err}"), Fonts::text_font, 15)),
+            InterpreterState::Finished { result: Ok(()) } => make_message("interpreter finished successfully".to_string()),
+            InterpreterState::Finished { result: Err(err) } => make_message(format!("interpreter had error: {err}")),
         };
 
-        RespondsToKeyboard::<Self, _, _>::new(
-            sfml::window::Key::Space,
-            |interpreter: &mut _| interpreter.step(),
-            flex! {
-                horizontal
-                code_view: ItemSettings::Flex(0.8), code_view,
-                msg: ItemSettings::Flex(0.2), msg,
-            },
-        )
+        RespondsToKeyboard::<Self, _, _>::new(sfml::window::Key::Space, |interpreter: &mut _| interpreter.step(), widget)
     }
 
     fn step(&mut self) {
