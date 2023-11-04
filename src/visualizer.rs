@@ -13,7 +13,7 @@ use sfml::{
 
 use crate::visualizer::{
     event::{GeneralEvent, TargetedEvent},
-    graphics::GraphicsContext,
+    graphics::{Fonts, GraphicsContext},
     layout::SizeConstraints,
     render_object::{RenderObject, RenderObjectIdMaker},
     widgets::Widget,
@@ -22,25 +22,30 @@ use crate::visualizer::{
 pub(crate) fn run<Model, ModelAsWidget: Widget<Model>>(window_name: &'static str, window_size: (u32, u32), mut model: Model, model_to_widget: impl Fn(&Model) -> ModelAsWidget) {
     let mut id_maker = RenderObjectIdMaker::new();
     let graphics_context = {
-        // TODO: don't panic?
-        let text_font_handle = font_kit::source::SystemSource::new()
-            .select_best_match(&[font_kit::family_name::FamilyName::SansSerif, font_kit::family_name::FamilyName::Serif], &font_kit::properties::Properties::new())
-            .expect("could not find appropriate text font font");
-        let text_font = match text_font_handle {
-            font_kit::handle::Handle::Path { path, font_index: _ } => graphics::Font::from_file(&path.to_string_lossy()).expect("could not load font"), // TODO: figure out how to handle font_index
-            font_kit::handle::Handle::Memory { bytes: _, font_index: _ } => unimplemented!("loading font from memory"),
+        let fonts = {
+            // TODO: don't panic?
+            let text_font_handle = font_kit::source::SystemSource::new()
+                .select_best_match(&[font_kit::family_name::FamilyName::SansSerif, font_kit::family_name::FamilyName::Serif], &font_kit::properties::Properties::new())
+                .expect("could not find appropriate text font font");
+            let text_font = match text_font_handle {
+                font_kit::handle::Handle::Path { path, font_index: _ } => graphics::Font::from_file(&path.to_string_lossy()).expect("could not load font"), // TODO: figure out how to handle font_index
+                font_kit::handle::Handle::Memory { bytes: _, font_index: _ } => unimplemented!("loading font from memory"),
+            };
+
+            let monospace_font_handle = font_kit::source::SystemSource::new()
+                .select_best_match(&[font_kit::family_name::FamilyName::Monospace], &font_kit::properties::Properties::new())
+                .expect("could not find appropriate monospace font");
+            let monospace_font = match monospace_font_handle {
+                font_kit::handle::Handle::Path { path, font_index: _ } => graphics::Font::from_file(&path.to_string_lossy()).expect("could not load font"), // TODO: figure out how to handle font_index
+                font_kit::handle::Handle::Memory { bytes: _, font_index: _ } => unimplemented!("loading font from memory"),
+            };
+
+            Fonts { text_font, monospace_font }
         };
 
-        let monospace_font_handle = font_kit::source::SystemSource::new()
-            .select_best_match(&[font_kit::family_name::FamilyName::Monospace], &font_kit::properties::Properties::new())
-            .expect("could not find appropriate monospace font");
-        let monospace_font = match monospace_font_handle {
-            font_kit::handle::Handle::Path { path, font_index: _ } => graphics::Font::from_file(&path.to_string_lossy()).expect("could not load font"), // TODO: figure out how to handle font_index
-            font_kit::handle::Handle::Memory { bytes: _, font_index: _ } => unimplemented!("loading font from memory"),
-        };
-
-        GraphicsContext { text_font, monospace_font, default_render_context_settings: sfml::window::ContextSettings { antialiasing_level: 0, ..Default::default() } }
+        GraphicsContext { default_render_context_settings: sfml::window::ContextSettings { antialiasing_level: 0, ..Default::default() }, fonts }
     };
+
     let mut render_object = model_to_widget(&model).to_render_object(&mut id_maker);
 
     let mut window = RenderWindow::new(window_size, window_name, Style::DEFAULT, &graphics_context.default_render_context_settings);

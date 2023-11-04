@@ -23,17 +23,21 @@ enum HighlightEndPosition {
     Index(usize),
 }
 
-pub(crate) struct LineView<'file> {
+pub(crate) struct LineView<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font> {
     contents: &'file str,
     highlight: Option<(HighlightStartPosition, HighlightEndPosition)>,
+    get_font: GetFont,
+    font_size: u32,
 }
 // TODO: padding between lines
 
-pub(crate) struct LineViewRenderObject<'file> {
+pub(crate) struct LineViewRenderObject<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font> {
     id: RenderObjectId,
     contents: &'file str,
     highlight: Animated<Option<(HighlightStartPosition, HighlightEndPosition)>>, // TODO: improve animation
     size: graphics::Vector2f,
+    get_font: GetFont,
+    font_size: u32,
     _private: (),
 }
 
@@ -79,7 +83,7 @@ impl Lerpable for HighlightEndPosition {
 
 // TODO: secondary spans with other messages, ...
 // TODO: scrolling
-pub(crate) fn code_view<'file, Data: 'file>(span: Span<'file>) -> impl Widget<Data> + 'file {
+pub(crate) fn code_view<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font + Copy + 'file, Data: 'file>(span: Span<'file>, font: GetFont, font_size: u32) -> impl Widget<Data> + 'file {
     Expand::new(flex::homogeneous::Flex::new(
         flex::Direction::Vertical,
         span.file
@@ -99,7 +103,7 @@ pub(crate) fn code_view<'file, Data: 'file>(span: Span<'file>) -> impl Widget<Da
                 (
                     flex::ItemSettings::Fixed,
                     MinSize::new(
-                        LineView { contents: line_contents, highlight },
+                        LineView { contents: line_contents, highlight, get_font: font, font_size },
                         graphics::Vector2f::new(0.0, 20.0), // TODO: don't hardcode minimum height
                     ),
                 )
@@ -108,11 +112,19 @@ pub(crate) fn code_view<'file, Data: 'file>(span: Span<'file>) -> impl Widget<Da
     ))
 }
 
-impl<'file, Data> Widget<Data> for LineView<'file> {
-    type Result = LineViewRenderObject<'file>;
+impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data> for LineView<'file, GetFont> {
+    type Result = LineViewRenderObject<'file, GetFont>;
 
     fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        LineViewRenderObject { id: id_maker.next_id(), contents: self.contents, highlight: Animated::new(self.highlight), size: graphics::Vector2f::new(0.0, 0.0), _private: () }
+        LineViewRenderObject {
+            id: id_maker.next_id(),
+            contents: self.contents,
+            highlight: Animated::new(self.highlight),
+            size: graphics::Vector2f::new(0.0, 0.0),
+            get_font: self.get_font,
+            font_size: self.font_size,
+            _private: (),
+        }
     }
 
     fn update_render_object(self, render_object: &mut Self::Result, _: &mut RenderObjectIdMaker) {
@@ -121,16 +133,16 @@ impl<'file, Data> Widget<Data> for LineView<'file> {
     }
 }
 
-impl<'file, Data> RenderObject<Data> for LineViewRenderObject<'file> {
+impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject<Data> for LineViewRenderObject<'file, GetFont> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
-        let text = graphics::Text::new(self.contents, &graphics_context.monospace_font, 15); // TODO: control font size
+        let text = graphics::Text::new(self.contents, (self.get_font)(&graphics_context.fonts), self.font_size);
         self.size = sc.clamp_size(text.global_bounds().size());
     }
 
     fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, _: Option<RenderObjectId>) {
         // TODO: deal with overflow (clipping does not work because the bounding box does not include descenders)
         // util::clip(graphics_context, target, graphics::FloatRect::from_vecs(top_left, self.size), |target, top_left| {
-        let mut text = graphics::Text::new(self.contents, &graphics_context.monospace_font, 15); // TODO: control font size
+        let mut text = graphics::Text::new(self.contents, (self.get_font)(&graphics_context.fonts), self.font_size);
         text.set_position(top_left);
         text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
 

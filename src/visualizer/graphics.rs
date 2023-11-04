@@ -38,7 +38,21 @@ impl CenterText for Text<'_> {
 }
 
 pub(crate) struct GraphicsContext {
+    pub(crate) default_render_context_settings: sfml::window::ContextSettings,
+    pub(crate) fonts: Fonts,
+}
+
+pub(crate) struct Fonts {
     pub(crate) text_font: SfBox<Font>,
     pub(crate) monospace_font: SfBox<Font>,
-    pub(crate) default_render_context_settings: sfml::window::ContextSettings,
+}
+
+impl Fonts {
+    pub(crate) fn text_font(&self) -> &Font {
+        &self.text_font
+    }
+
+    pub(crate) fn monospace_font(&self) -> &Font {
+        &self.monospace_font
+    }
 }

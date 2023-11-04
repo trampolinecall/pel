@@ -6,7 +6,10 @@ use num_bigint::BigInt;
 use crate::{
     interpreter::lang::{BinaryOp, Expr, ExprKind, ShortCircuitOp, Stmt, StmtKind, UnaryOp, VarName},
     source::{Located, Span},
-    visualizer::widgets::{code_view::code_view, either::Either, empty::Empty, expand::Expand, flex, label::Label, responds_to_keyboard::RespondsToKeyboard, Widget},
+    visualizer::{
+        graphics::Fonts,
+        widgets::{code_view::code_view, either::Either, empty::Empty, expand::Expand, flex, label::Label, responds_to_keyboard::RespondsToKeyboard, Widget},
+    },
 };
 
 #[derive(Default, Clone)]
@@ -65,7 +68,7 @@ pub(crate) fn new_interpreter(stmts: Vec<Stmt>) -> Interpreter<impl Future<Outpu
 impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpreter<'file, F> {
     pub(crate) fn view(&self) -> impl Widget<Interpreter<'file, F>> {
         let (code_view, msg) = match &self.state {
-            InterpreterState::NotStarted => (Either::new_left(Empty), Label::new("interpreter not started".to_string())),
+            InterpreterState::NotStarted => (Either::new_left(Empty), Label::new("interpreter not started".to_string(), Fonts::text_font, 15)),
             InterpreterState::AboutToExecute(InterpretYield { msg, highlight, env }) => {
                 // TODO: hashmap does not preserve order that variables are created
                 // TODO: var and value side by side in table aligned
@@ -77,10 +80,15 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
                             env_scope.iter().map(|(var_name, value)| {
                                 (
                                     flex::ItemSettings::Fixed,
-                                    Label::new(match value { // TODO: min height?
-                                        Some(value) => format!("{var_name}: {value}"),
-                                        None => format!("{var_name}: <uninitialized>"),
-                                    }),
+                                    Label::new(
+                                        match value {
+                                            // TODO: min height?
+                                            Some(value) => format!("{var_name}: {value}"),
+                                            None => format!("{var_name}: <uninitialized>"),
+                                        },
+                                        Fonts::text_font,
+                                        15,
+                                    ),
                                 )
                             })
                         })
@@ -90,14 +98,14 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
                 (
                     Either::new_right(flex! {
                         horizontal
-                        code_view: ItemSettings::Flex(0.8), code_view(*highlight),
+                        code_view: ItemSettings::Flex(0.8), code_view(*highlight, Fonts::monospace_font, 15),
                         env_view: ItemSettings::Flex(0.2), env_view,
                     }),
-                    Label::new(format!("running\n{msg}")),
+                    Label::new(format!("running\n{msg}"), Fonts::text_font, 15),
                 )
             }
-            InterpreterState::Finished { result: Ok(()) } => (Either::new_left(Empty), Label::new("interpreter finished successfully".to_string())),
-            InterpreterState::Finished { result: Err(err) } => (Either::new_left(Empty), Label::new(format!("interpreter had error: {err}"))),
+            InterpreterState::Finished { result: Ok(()) } => (Either::new_left(Empty), Label::new("interpreter finished successfully".to_string(), Fonts::text_font, 15)),
+            InterpreterState::Finished { result: Err(err) } => (Either::new_left(Empty), Label::new(format!("interpreter had error: {err}"), Fonts::text_font, 15)),
         };
 
         RespondsToKeyboard::<Self, _, _>::new(
