@@ -43,7 +43,7 @@ fn run() -> Result<(), error::ErrorReportedPromise> {
     let stmts = interpreter::parser::parse_statements(&file, syntax_options)?;
 
     let interpreter = interpreter::interpreter::new_interpreter(stmts);
-    visualizer::run("pel interpreter", (800, 600), interpreter, interpreter::interpreter::Interpreter::view);
+    visualizer::run("pel interpreter", (800, 600), interpreter, interpreter::interpreter::InterpreterViewer::view);
 
     Ok(())
 }

@@ -8,7 +8,7 @@ use crate::{
     source::{Located, Span},
     visualizer::{
         graphics::Fonts,
-        widgets::{code_view::code_view, either::Either, empty::Empty, flex, label::Label, responds_to_keyboard::RespondsToKeyboard, Widget},
+        widgets::{code_view::code_view, either::Either, flex, label::Label, responds_to_keyboard::RespondsToKeyboard, Widget},
     },
 };
 
@@ -51,27 +51,27 @@ struct InterpretYield<'file> {
     program_output: String,
     env: Vars,
 }
-pub(crate) struct Interpreter<'file, F: Future<Output = Result<(), RuntimeError<'file>>>> {
-    state: InterpreterState<'file>,
+pub(crate) struct InterpreterViewer<'file, F: Future<Output = Result<(), RuntimeError<'file>>>> {
+    state: InterpreterViewState<'file>,
 
-    interpret_generator: Gen<InterpretYield<'file>, (), F>,
+    generator: Gen<InterpretYield<'file>, (), F>,
 }
-enum InterpreterState<'file> {
+enum InterpreterViewState<'file> {
     NotStarted,
     AboutToExecute(InterpretYield<'file>),
     Finished { result: Result<(), RuntimeError<'file>> },
 }
 
-pub(crate) fn new_interpreter(stmts: Vec<Stmt>) -> Interpreter<impl Future<Output = Result<(), RuntimeError>>> {
+pub(crate) fn new_interpreter(stmts: Vec<Stmt>) -> InterpreterViewer<impl Future<Output = Result<(), RuntimeError>>> {
     let gen = Gen::new(move |co| interpret(stmts, co));
-    Interpreter { state: InterpreterState::NotStarted, interpret_generator: gen }
+    InterpreterViewer { state: InterpreterViewState::NotStarted, generator: gen }
 }
-impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpreter<'file, F> {
-    pub(crate) fn view(&self) -> impl Widget<Interpreter<'file, F>> {
+impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> InterpreterViewer<'file, F> {
+    pub(crate) fn view(&self) -> impl Widget<InterpreterViewer<'file, F>> {
         let make_message = |message| Either::new_left(Label::new(message, Fonts::text_font, 15));
         let widget = match &self.state {
-            InterpreterState::NotStarted => make_message("interpreter not started".to_string()),
-            InterpreterState::AboutToExecute(InterpretYield { msg, highlight, env, program_output }) => {
+            InterpreterViewState::NotStarted => make_message("interpreter not started".to_string()),
+            InterpreterViewState::AboutToExecute(InterpretYield { msg, highlight, env, program_output }) => {
                 // TODO: hashmap does not preserve order that variables are created
                 // TODO: var and value side by side in table aligned
                 let env_view = flex::homogeneous::Flex::new(
@@ -105,8 +105,8 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
                     msg: ItemSettings::Flex(0.2), Label::new(format!("running\n{msg}"), Fonts::text_font, 15),
                 })
             }
-            InterpreterState::Finished { result: Ok(()) } => make_message("interpreter finished successfully".to_string()),
-            InterpreterState::Finished { result: Err(err) } => make_message(format!("interpreter had error: {err}")),
+            InterpreterViewState::Finished { result: Ok(()) } => make_message("interpreter finished successfully".to_string()),
+            InterpreterViewState::Finished { result: Err(err) } => make_message(format!("interpreter had error: {err}")),
         };
 
         RespondsToKeyboard::<Self, _, _>::new(sfml::window::Key::Space, |interpreter: &mut _| interpreter.step(), widget)
@@ -114,12 +114,12 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
 
     fn step(&mut self) {
         match self.state {
-            InterpreterState::NotStarted | InterpreterState::AboutToExecute { .. } => match self.interpret_generator.resume() {
-                genawaiter::GeneratorState::Yielded(step) => self.state = InterpreterState::AboutToExecute(step),
-                genawaiter::GeneratorState::Complete(res) => self.state = InterpreterState::Finished { result: res },
+            InterpreterViewState::NotStarted | InterpreterViewState::AboutToExecute { .. } => match self.generator.resume() {
+                genawaiter::GeneratorState::Yielded(step) => self.state = InterpreterViewState::AboutToExecute(step),
+                genawaiter::GeneratorState::Complete(res) => self.state = InterpreterViewState::Finished { result: res },
             },
 
-            InterpreterState::Finished { result: _, .. } => {}
+            InterpreterViewState::Finished { result: _, .. } => {}
         }
     }
 }
