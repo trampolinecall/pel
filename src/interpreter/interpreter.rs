@@ -48,6 +48,7 @@ impl Vars {
 struct InterpretYield<'file> {
     msg: String,
     highlight: Span<'file>,
+    program_output: String,
     env: Vars,
 }
 pub(crate) struct Interpreter<'file, F: Future<Output = Result<(), RuntimeError<'file>>>> {
@@ -69,7 +70,7 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
     pub(crate) fn view(&self) -> impl Widget<Interpreter<'file, F>> {
         let (code_view, msg) = match &self.state {
             InterpreterState::NotStarted => (Either::new_left(Empty), Label::new("interpreter not started".to_string(), Fonts::text_font, 15)),
-            InterpreterState::AboutToExecute(InterpretYield { msg, highlight, env }) => {
+            InterpreterState::AboutToExecute(InterpretYield { msg, highlight, env, program_output }) => {
                 // TODO: hashmap does not preserve order that variables are created
                 // TODO: var and value side by side in table aligned
                 let env_view = flex::homogeneous::Flex::new(
@@ -99,6 +100,7 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
                     Either::new_right(flex! {
                         horizontal
                         code_view: ItemSettings::Flex(0.8), code_view(*highlight, Fonts::text_font, 15, Fonts::monospace_font, 15),
+                        program_output: ItemSettings::Flex(0.3), Label::new(program_output.clone(), Fonts::monospace_font, 15), // TODO: scrolling, min size, fixed size?
                         env_view: ItemSettings::Flex(0.2), env_view,
                     }),
                     Label::new(format!("running\n{msg}"), Fonts::text_font, 15),
@@ -216,10 +218,10 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
     use async_recursion::async_recursion;
 
     #[async_recursion]
-    async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(env: &mut Vars, e: Expr<'file>, co: &ICo<'file>) -> Result<Value, RuntimeError<'file>> {
+    async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(env: &mut Vars, program_output: &mut String, e: Expr<'file>, co: &ICo<'file>) -> Result<Value, RuntimeError<'file>> {
         match e.kind {
             ExprKind::Var(vname) => {
-                co.yield_(InterpretYield { msg: format!("read variable '{vname}'"), highlight: e.span, env: env.clone() }).await;
+                co.yield_(InterpretYield { msg: format!("read variable '{vname}'"), highlight: e.span, program_output: program_output.clone(), env: env.clone() }).await;
                 match env.lookup(&vname) {
                     Some(Some(v)) => Ok(v.clone()),
                     Some(None) => Err(RuntimeError::VarUninitialized(e.span, vname)),
@@ -230,7 +232,7 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
             ExprKind::Float(f) => Ok(Value::Float(f)),
             ExprKind::String(s) => Ok(Value::String(s)),
             ExprKind::Bool(b) => Ok(Value::Bool(b)),
-            ExprKind::Parenthesized(e) => Ok(interpret_expr(env, *e, co).await?),
+            ExprKind::Parenthesized(e) => Ok(interpret_expr(env, program_output, *e, co).await?),
             ExprKind::Call(_, _) => {
                 todo!()
             }
@@ -238,17 +240,17 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
                 let left_span = left.span;
                 let right_span = right.span;
                 match op {
-                    ShortCircuitOp::Or => match interpret_expr(env, *left, co).await? {
+                    ShortCircuitOp::Or => match interpret_expr(env, program_output, *left, co).await? {
                         Value::Bool(true) => Ok(Value::Bool(true)),
-                        Value::Bool(false) => match interpret_expr(env, *right, co).await? {
+                        Value::Bool(false) => match interpret_expr(env, program_output, *right, co).await? {
                             a @ Value::Bool(_) => Ok(a),
                             right => Err(RuntimeError::InvalidTypeForShortCircuitOp(right_span, op, right.type_())),
                         },
                         left => Err(RuntimeError::InvalidTypeForShortCircuitOp(left_span, op, left.type_())),
                     },
-                    ShortCircuitOp::And => match interpret_expr(env, *left, co).await? {
+                    ShortCircuitOp::And => match interpret_expr(env, program_output, *left, co).await? {
                         Value::Bool(false) => Ok(Value::Bool(false)),
-                        Value::Bool(true) => match interpret_expr(env, *right, co).await? {
+                        Value::Bool(true) => match interpret_expr(env, program_output, *right, co).await? {
                             a @ Value::Bool(_) => Ok(a),
                             right => Err(RuntimeError::InvalidTypeForShortCircuitOp(right_span, op, right.type_())),
                         },
@@ -257,8 +259,8 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
                 }
             }
             ExprKind::BinaryOp(left, Located(op_span, op), right) => {
-                let left = interpret_expr(env, *left, co).await?;
-                let right = interpret_expr(env, *right, co).await?;
+                let left = interpret_expr(env, program_output, *left, co).await?;
+                let right = interpret_expr(env, program_output, *right, co).await?;
 
                 macro_rules! comparison {
                     ($op:tt) => {
@@ -272,7 +274,7 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
                     };
                 }
 
-                co.yield_(InterpretYield { msg: "evaluate operation".to_string(), highlight: op_span, env: env.clone() }).await; // TODO: put operator in quotes in message
+                co.yield_(InterpretYield { msg: "evaluate operation".to_string(), highlight: op_span, program_output: program_output.clone(), env: env.clone() }).await; // TODO: put operator in quotes in message
                 match op {
                     BinaryOp::Equal => {
                         comparison!(==)
@@ -321,8 +323,8 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
                 }
             }
             ExprKind::UnaryOp(Located(operator_span, operator), operand) => {
-                let operand = interpret_expr(env, *operand, co).await?;
-                co.yield_(InterpretYield { msg: "evaluate operation".to_string(), highlight: operator_span, env: env.clone() }).await;
+                let operand = interpret_expr(env, program_output, *operand, co).await?;
+                co.yield_(InterpretYield { msg: "evaluate operation".to_string(), highlight: operator_span, program_output: program_output.clone(), env: env.clone() }).await;
                 match operator {
                     UnaryOp::NumericNegate => match operand {
                         Value::Int(i) => Ok(Value::Int(-i)),
@@ -339,40 +341,42 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
     }
 
     #[async_recursion]
-    async fn interpret_statement<'parent, 'parents: 'parent, 'file>(env: &mut Vars, stmt: Stmt<'file>, co: &ICo<'file>) -> Result<(), RuntimeError<'file>> {
+    async fn interpret_statement<'parent, 'parents: 'parent, 'file>(env: &mut Vars, program_output: &mut String, stmt: Stmt<'file>, co: &ICo<'file>) -> Result<(), RuntimeError<'file>> {
         match stmt.kind {
-            StmtKind::Block(stmts) => interpret_statements(env, stmts, co).await,
+            StmtKind::Block(stmts) => interpret_statements(env, program_output, stmts, co).await,
 
             StmtKind::Expr(e) => {
-                interpret_expr(env, e, co).await?;
+                interpret_expr(env, program_output, e, co).await?;
                 Ok(())
             }
 
             StmtKind::Print(v) => {
-                let v = interpret_expr(env, v, co).await?;
-                co.yield_(InterpretYield { msg: format!("print value '{v}'"), highlight: stmt.span, env: env.clone() }).await;
-                println!("{v}"); // TODO: put this into virtual console instead of printlning
+                let v = interpret_expr(env, program_output, v, co).await?;
+                co.yield_(InterpretYield { msg: format!("print value '{v}'"), highlight: stmt.span, program_output: program_output.clone(), env: env.clone() }).await;
+                *program_output += &v.to_string();
+                *program_output += "\n";
                 Ok(())
             }
 
             StmtKind::Return(_) => todo!(),
 
             StmtKind::MakeVar(vname, None) => {
-                co.yield_(InterpretYield { msg: format!("make uninitialized variable '{vname}'"), highlight: stmt.span, env: env.clone() }).await;
+                co.yield_(InterpretYield { msg: format!("make uninitialized variable '{vname}'"), highlight: stmt.span, program_output: program_output.clone(), env: env.clone() }).await;
                 env.define_var(vname.clone(), None);
                 Ok(())
             }
 
             StmtKind::MakeVar(vname, Some(initializer)) => {
-                let initializer = interpret_expr(env, initializer, co).await?;
-                co.yield_(InterpretYield { msg: format!("make variable '{vname}' with initializer {initializer}"), highlight: stmt.span, env: env.clone() }).await;
+                let initializer = interpret_expr(env, program_output, initializer, co).await?;
+                co.yield_(InterpretYield { msg: format!("make variable '{vname}' with initializer {initializer}"), highlight: stmt.span, program_output: program_output.clone(), env: env.clone() })
+                    .await;
                 env.define_var(vname.clone(), Some(initializer));
                 Ok(())
             }
 
             StmtKind::AssignVar(var, v) => {
-                let v = interpret_expr(env, v, co).await?;
-                co.yield_(InterpretYield { msg: format!("assign variable '{var}' with value {v}"), highlight: stmt.span, env: env.clone() }).await;
+                let v = interpret_expr(env, program_output, v, co).await?;
+                co.yield_(InterpretYield { msg: format!("assign variable '{var}' with value {v}"), highlight: stmt.span, program_output: program_output.clone(), env: env.clone() }).await;
                 match env.lookup_mut(&var) {
                     Some(v_place) => {
                         *v_place = Some(v);
@@ -388,13 +392,13 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
 
             StmtKind::If(if_span, cond, t, f) => {
                 let cond_span = cond.span;
-                let cond = interpret_expr(env, cond, co).await?;
-                co.yield_(InterpretYield { msg: "check condition".to_string(), highlight: if_span, env: env.clone() }).await;
+                let cond = interpret_expr(env, program_output, cond, co).await?;
+                co.yield_(InterpretYield { msg: "check condition".to_string(), highlight: if_span, program_output: program_output.clone(), env: env.clone() }).await;
                 match cond {
-                    Value::Bool(true) => interpret_statement(env, *t, co).await,
+                    Value::Bool(true) => interpret_statement(env, program_output, *t, co).await,
                     Value::Bool(false) => {
                         if let Some(f) = f {
-                            interpret_statement(env, *f, co).await?;
+                            interpret_statement(env, program_output, *f, co).await?;
                         }
                         Ok(())
                     }
@@ -403,29 +407,29 @@ async fn interpret<'file>(stmts: Vec<Stmt<'file>>, co: ICo<'file>) -> Result<(),
             }
 
             StmtKind::While(while_span, cond, body) => loop {
-                let cond_value = interpret_expr(env, cond.clone(), co).await?;
-                co.yield_(InterpretYield { msg: "check condition".to_string(), highlight: while_span, env: env.clone() }).await;
+                let cond_value = interpret_expr(env, program_output, cond.clone(), co).await?;
+                co.yield_(InterpretYield { msg: "check condition".to_string(), highlight: while_span, program_output: program_output.clone(), env: env.clone() }).await;
                 match cond_value {
                     Value::Bool(true) => {}
                     Value::Bool(false) => break Ok(()),
                     _ => break Err(RuntimeError::ExpectedBool(cond.span, cond_value.type_())),
                 }
 
-                interpret_statement(env, (*body).clone(), co).await?;
+                interpret_statement(env, program_output, (*body).clone(), co).await?;
             },
         }
     }
 
     #[async_recursion]
-    async fn interpret_statements<'parent, 'parents: 'parent, 'file>(env: &mut Vars, stmts: Vec<Stmt<'file>>, co: &ICo<'file>) -> Result<(), RuntimeError<'file>> {
+    async fn interpret_statements<'parent, 'parents: 'parent, 'file>(env: &mut Vars, program_output: &mut String, stmts: Vec<Stmt<'file>>, co: &ICo<'file>) -> Result<(), RuntimeError<'file>> {
         env.start_scope();
         for stmt in stmts {
-            interpret_statement(env, stmt, co).await?;
+            interpret_statement(env, program_output, stmt, co).await?;
         }
         env.end_scope();
 
         Ok(())
     }
 
-    interpret_statements(&mut Vars::default(), stmts, &co).await
+    interpret_statements(&mut Vars::default(), &mut String::new(), stmts, &co).await
 }

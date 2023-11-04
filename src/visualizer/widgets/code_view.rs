@@ -137,7 +137,7 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
                     flex::ItemSettings::Fixed,
                     flex! {
                         horizontal
-                        line_number: flex::ItemSettings::Fixed, fixed_size(Center::new(Label::new((line_number + 1).to_string(), line_nr_font, line_nr_font_size)), graphics::Vector2f::new(20.0, 20.0)), // TODO: also don't hardcode this size
+                        line_number: flex::ItemSettings::Fixed, fixed_size(Center::new(Label::new((line_number + 1).to_string(), line_nr_font, line_nr_font_size)), graphics::Vector2f::new(20.0, 20.0)), // TODO: also don't hardcode this size, also TODO: line numbers should really be right aligned, not centered
                         line_view: flex::ItemSettings::Flex(1.0), MinSize::new(
                             LineView { contents: line_contents, highlight, get_font: code_font, font_size: code_font_size },
                             graphics::Vector2f::new(0.0, 20.0), // TODO: don't hardcode minimum height
