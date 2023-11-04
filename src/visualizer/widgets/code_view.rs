@@ -108,7 +108,7 @@ impl Lerpable for HighlightEndPosition {
 // TODO: secondary spans with other messages, ...
 // TODO: scrolling
 pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font + Copy + 'file, LineNrFont: Fn(&graphics::Fonts) -> &graphics::Font + Copy + 'file, Data: 'file>(
-    primary_span: Span<'file>,
+    primary_highlight: (Span<'file>, graphics::Color),
     secondary_highlights: impl IntoIterator<Item = (Span<'file>, graphics::Color)>,
     line_nr_font: LineNrFont,
     line_nr_font_size: u32,
@@ -118,13 +118,14 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
     let secondary_highlights: Vec<_> = secondary_highlights.into_iter().collect();
     Expand::new(flex::homogeneous::Flex::new(
         flex::Direction::Vertical,
-        primary_span
+        primary_highlight
+            .0
             .file
             .lines
             .iter()
             .enumerate()
             .map(|(line_number, (line_bounds, line_contents))| {
-                let highlights_on_line = std::iter::once(&(primary_span, graphics::Color::rgb(50, 100, 50)))
+                let highlights_on_line = std::iter::once(&primary_highlight)
                     .chain(secondary_highlights.iter())
                     .flat_map(|(span, color)| {
                         let highlight_span_overlaps_line_bounds = !(span.end < line_bounds.start || span.start >= line_bounds.end);
