@@ -59,8 +59,8 @@ impl<Data, Child: RenderObject<Data>> RenderObject<Data> for CenterRenderObject<
         self.child.send_targeted_event(center(top_left, self.size, self.child.size()), data, target, event);
     }
 
-    fn targeted_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, event: event::TargetedEvent) {}
-    fn general_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, event: event::GeneralEvent) {}
+    fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::TargetedEvent) {}
+    fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::GeneralEvent) {}
 }
 
 fn center(top_left: graphics::Vector2f, max_size: graphics::Vector2f, child_size: graphics::Vector2f) -> graphics::Vector2f {

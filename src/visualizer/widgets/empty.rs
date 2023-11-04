@@ -13,21 +13,21 @@ pub(crate) struct EmptyRenderObject {
 impl<Data> Widget<Data> for Empty {
     type Result = EmptyRenderObject;
 
-    fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
+    fn to_render_object(self, _: &mut RenderObjectIdMaker) -> Self::Result {
         EmptyRenderObject { size: graphics::Vector2f::new(0.0, 0.0) }
     }
 
-    fn update_render_object(self, render_object: &mut Self::Result, id_maker: &mut RenderObjectIdMaker) {}
+    fn update_render_object(self, _: &mut Self::Result, _: &mut RenderObjectIdMaker) {}
 }
 
 impl<Data> RenderObject<Data> for EmptyRenderObject {
-    fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
+    fn layout(&mut self, _: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         self.size = sc.clamp_size(graphics::Vector2f::new(0.0, 0.0));
     }
 
-    fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, hover: Option<RenderObjectId>) {}
+    fn draw(&self, _: &graphics::GraphicsContext, _: &mut dyn graphics::RenderTarget, _: graphics::Vector2f, _: Option<RenderObjectId>) {}
 
-    fn find_hover(&self, top_left: graphics::Vector2f, mouse: graphics::Vector2f) -> Option<RenderObjectId> {
+    fn find_hover(&self, _: graphics::Vector2f, _: graphics::Vector2f) -> Option<RenderObjectId> {
         None
     }
 
@@ -35,7 +35,7 @@ impl<Data> RenderObject<Data> for EmptyRenderObject {
         self.size
     }
 
-    fn send_targeted_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, target: RenderObjectId, event: event::TargetedEvent) {}
-    fn targeted_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, event: event::TargetedEvent) {}
-    fn general_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, event: event::GeneralEvent) {}
+    fn send_targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: RenderObjectId, _: event::TargetedEvent) {}
+    fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::TargetedEvent) {}
+    fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::GeneralEvent) {}
 }

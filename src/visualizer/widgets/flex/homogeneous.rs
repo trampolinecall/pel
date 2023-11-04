@@ -119,6 +119,6 @@ impl<Data, Child: RenderObject<Data>> RenderObject<Data> for FlexRenderObject<Da
         }
     }
 
-    fn targeted_event(&mut self, top_left: graphics::Vector2f, _: &mut Data, _: TargetedEvent) {}
-    fn general_event(&mut self, top_left: graphics::Vector2f, _: &mut Data, _: GeneralEvent) {}
+    fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: TargetedEvent) {}
+    fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: GeneralEvent) {}
 }

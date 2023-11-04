@@ -107,7 +107,7 @@ impl<Data, NormalChild: RenderObject<Data>, ChildOnClicked: RenderObject<Data>, 
         }
     }
 
-    fn targeted_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, event: event::TargetedEvent) {
+    fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, event: event::TargetedEvent) {
         match event {
             event::TargetedEvent::LeftMouseDown(_) => {
                 if self.mouse_button == MouseButton::Left {

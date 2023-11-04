@@ -75,6 +75,6 @@ impl<Data> RenderObject<Data> for TestRectRenderObject {
         }
     }
 
-    fn targeted_event(&mut self, top_left: graphics::Vector2f, _: &mut Data, _: TargetedEvent) {}
-    fn general_event(&mut self, top_left: graphics::Vector2f, _: &mut Data, _: GeneralEvent) {}
+    fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: TargetedEvent) {}
+    fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: GeneralEvent) {}
 }

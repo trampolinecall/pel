@@ -15,7 +15,6 @@ pub(crate) struct VSplit<Data, Left: Widget<Data>, Right: Widget<Data>> {
 }
 
 pub(crate) struct VSplitRenderObject<Data, Left: RenderObject<Data>, Right: RenderObject<Data>> {
-    id: RenderObjectId,
     left: Left,
     right: Right,
 
@@ -36,7 +35,6 @@ impl<Data, Left: Widget<Data>, Right: Widget<Data>> Widget<Data> for VSplit<Data
 
     fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
         VSplitRenderObject {
-            id: id_maker.next_id(),
             left: self.left.to_render_object(id_maker),
             right: self.right.to_render_object(id_maker),
             size: graphics::Vector2f::new(0.0, 0.0),
@@ -76,6 +74,6 @@ impl<Data, Left: RenderObject<Data>, Right: RenderObject<Data>> RenderObject<Dat
         self.right.send_targeted_event(top_left, data, target, event);
     }
 
-    fn targeted_event(&mut self, top_left: graphics::Vector2f, _: &mut Data, _: TargetedEvent) {}
-    fn general_event(&mut self, top_left: graphics::Vector2f, _: &mut Data, _: GeneralEvent) {}
+    fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: TargetedEvent) {}
+    fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: GeneralEvent) {}
 }

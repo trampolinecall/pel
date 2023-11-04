@@ -57,6 +57,6 @@ impl<Data, Child: RenderObject<Data>> RenderObject<Data> for ExpandRenderObject<
         self.child.send_targeted_event(top_left, data, target, event);
     }
 
-    fn targeted_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, event: event::TargetedEvent) {}
-    fn general_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, event: event::GeneralEvent) {}
+    fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::TargetedEvent) {}
+    fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::GeneralEvent) {}
 }

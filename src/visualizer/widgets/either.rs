@@ -80,6 +80,6 @@ impl<Data, Left: RenderObject<Data>, Right: RenderObject<Data>> RenderObject<Dat
         }
     }
 
-    fn targeted_event(&mut self, top_left: graphics::Vector2f, _: &mut Data, _: TargetedEvent) {}
-    fn general_event(&mut self, top_left: graphics::Vector2f, _: &mut Data, _: GeneralEvent) {}
+    fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: TargetedEvent) {}
+    fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: GeneralEvent) {}
 }

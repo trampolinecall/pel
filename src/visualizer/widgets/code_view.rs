@@ -5,9 +5,7 @@ use sfml::graphics::{Shape, Transformable};
 use crate::{
     source::Span,
     visualizer::{
-        event,
-        graphics::{self, Fonts},
-        layout,
+        event, graphics, layout,
         render_object::{
             animated::{Animated, AnimatedValue, Lerpable},
             RenderObject, RenderObjectId, RenderObjectIdMaker,
@@ -294,6 +292,6 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject
         }
     }
 
-    fn targeted_event(&mut self, top_left: graphics::Vector2f, _: &mut Data, _: event::TargetedEvent) {}
-    fn general_event(&mut self, top_left: graphics::Vector2f, _: &mut Data, _: event::GeneralEvent) {}
+    fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::TargetedEvent) {}
+    fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::GeneralEvent) {}
 }
