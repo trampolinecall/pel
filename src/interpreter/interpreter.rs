@@ -10,8 +10,8 @@ use crate::{
         lang::Stmt,
     },
     visualizer::{
-        graphics::Fonts,
-        widgets::{code_view::code_view, either::Either, flex, label::Label, responds_to_keyboard::RespondsToKeyboard, Widget},
+        graphics::{self, Fonts},
+        widgets::{code_view::code_view, either::Either, flex, label::Label, min_size::MinSize, responds_to_keyboard::RespondsToKeyboard, Widget},
     },
 };
 
@@ -38,37 +38,14 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
             InterpreterViewState::AboutToExecute(InterpretYield { msg, highlight, state }) => {
                 // TODO: hashmap does not preserve order that variables are created
                 // TODO: var and value side by side in table aligned
-                let env_view = flex::homogeneous::Flex::new(
-                    flex::Direction::Vertical,
-                    state
-                        .env
-                        .scopes
-                        .iter()
-                        .flat_map(|env_scope| {
-                            env_scope.iter().map(|(var_name, value)| {
-                                (
-                                    flex::ItemSettings::Fixed,
-                                    Label::new(
-                                        match value {
-                                            // TODO: min height?
-                                            Some(value) => format!("{var_name}: {}", ReprValue(value)),
-                                            None => format!("{var_name}: <uninitialized>"),
-                                        },
-                                        Fonts::text_font,
-                                        15,
-                                    ),
-                                )
-                            })
-                        })
-                        .collect(),
-                );
+                let env_view = view_env(&state.env);
 
                 Either::new_right(flex! {
                     horizontal
-                    code_view: ItemSettings::Flex(0.8), code_view(*highlight, Fonts::text_font, 15, Fonts::monospace_font, 15),
-                    program_output: ItemSettings::Flex(0.3), Label::new(state.program_output.clone(), Fonts::monospace_font, 15), // TODO: scrolling, min size, fixed size?, scroll to bottom automatically
-                    env_view: ItemSettings::Flex(0.2), env_view,
-                    msg: ItemSettings::Flex(0.2), Label::new(format!("running\n{msg}"), Fonts::text_font, 15),
+                    code_view: flex::ItemSettings::Flex(0.8), code_view(*highlight, Fonts::text_font, 15, Fonts::monospace_font, 15),
+                    program_output: flex::ItemSettings::Flex(0.3), Label::new(state.program_output.clone(), Fonts::monospace_font, 15), // TODO: scrolling, min size, fixed size?, scroll to bottom automatically
+                    env_view: flex::ItemSettings::Flex(0.2), env_view,
+                    msg: flex::ItemSettings::Flex(0.2), Label::new(format!("running\n{msg}"), Fonts::text_font, 15),
                 })
             }
             InterpreterViewState::Finished { result: Ok(()) } => make_message("interpreter finished successfully".to_string()),
@@ -88,4 +65,40 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
             InterpreterViewState::Finished { result: _, .. } => {}
         }
     }
+}
+
+fn view_env<Data>(env: &interpreter::Vars) -> impl Widget<Data> {
+    flex::homogeneous::Flex::new(
+        flex::Direction::Vertical,
+        env.scopes
+            .iter()
+            .flat_map(|env_scope| {
+                env_scope.iter().map(|(var_name, value)| {
+                    (
+                        // TODO: grid widget
+                        flex::ItemSettings::Fixed,
+                        MinSize::new(
+                            flex! {
+                                horizontal
+
+                                name: flex::ItemSettings::Flex(0.5), MinSize::new(Label::new(var_name.to_string(), Fonts::text_font, 15), graphics::Vector2f::new(50.0, 0.0)),
+                                value: flex::ItemSettings::Flex(0.5), MinSize::new(
+                                    Label::new(
+                                        match value {
+                                            Some(value) => ReprValue(value).to_string(),
+                                            None => "<uninitialized>".to_string(),
+                                        },
+                                        Fonts::text_font,
+                                        15,
+                                    ),
+                                    graphics::Vector2f::new(50.0, 0.0)
+                                ),
+                            },
+                            graphics::Vector2f::new(0.0, 25.0),
+                        ),
+                    )
+                })
+            })
+            .collect(),
+    )
 }
