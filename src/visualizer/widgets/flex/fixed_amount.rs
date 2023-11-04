@@ -8,26 +8,18 @@ macro_rules! flex {
     };
     ($direction:expr; $( $name:ident : $settings:expr, $e:expr ),* $(,)?) => {
         {
-            use std::marker::PhantomData;
-
-            use $crate::visualizer::{
-                graphics, layout, event,
-                render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker},
-                widgets::{flex::ItemSettings, Widget},
-            };
-
             #[allow(non_camel_case_types)]
             struct Container<Data, $($name: Widget<Data>),*> {
                 $(
-                    $name: (ItemSettings, $name),
+                    $name: ($crate::visualizer::widgets::flex::ItemSettings, $name),
                 )*
                 _phantom: ::std::marker::PhantomData<fn(&mut Data)>,
             }
             #[allow(non_camel_case_types)]
-            struct ContainerRenderObject<Data, $($name: RenderObject<Data>),*> {
+            struct ContainerRenderObject<Data, $($name: $crate::visualizer::render_object::RenderObject<Data>),*> {
                 own_size: graphics::Vector2f,
                 $(
-                    $name: (ItemSettings, graphics::Vector2f, $name),
+                    $name: ($crate::visualizer::render_object::animated::Animated<$crate::visualizer::widgets::flex::ItemSettings>, graphics::Vector2f, $name),
                 )*
 
                 _phantom: ::std::marker::PhantomData<fn(&mut Data)>,
@@ -37,33 +29,33 @@ macro_rules! flex {
             impl<Data, $($name: Widget<Data>),*> Widget<Data> for Container<Data, $($name),*> {
                 type Result = ContainerRenderObject<Data, $(<$name as Widget<Data>>::Result),*>;
 
-                fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
+                fn to_render_object(self, id_maker: &mut $crate::visualizer::render_object::RenderObjectIdMaker) -> Self::Result {
                     ContainerRenderObject {
                         own_size: graphics::Vector2f::new(0.0, 0.0),
                         $(
-                            $name: (self.$name.0, graphics::Vector2f::new(0.0, 0.0), self.$name.1.to_render_object(id_maker)),
+                            $name: ($crate::visualizer::render_object::animated::Animated::new(self.$name.0), graphics::Vector2f::new(0.0, 0.0), self.$name.1.to_render_object(id_maker)),
                         )*
-                        _phantom: PhantomData,
+                        _phantom: ::std::marker::PhantomData,
                     }
                 }
 
-                fn update_render_object(self, render_object: &mut Self::Result, id_maker: &mut RenderObjectIdMaker) {
+                fn update_render_object(self, render_object: &mut Self::Result, id_maker: &mut $crate::visualizer::render_object::RenderObjectIdMaker) {
                     $(
-                        render_object.$name.0 = self.$name.0;
+                        render_object.$name.0.set(self.$name.0);
                         self.$name.1.update_render_object(&mut render_object.$name.2, id_maker);
                     )*
                 }
             }
             #[allow(non_camel_case_types)]
-            impl<Data, $($name: RenderObject<Data>),*> RenderObject<Data> for ContainerRenderObject<Data, $($name),*> {
-                fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
+            impl<Data, $($name: $crate::visualizer::render_object::RenderObject<Data>),*> $crate::visualizer::render_object::RenderObject<Data> for ContainerRenderObject<Data, $($name),*> {
+                fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: $crate::visualizer::layout::SizeConstraints) {
                     // lay out fixed elements and count up total flex scaling factors
                     let mut total_flex_scale = 0.0;
                     let mut major_size_left = $direction.take_major_component(sc.max);
                     $(
                         {
                             let (settings, _, ref mut child) = self.$name;
-                            $crate::visualizer::widgets::flex::_layout::first_phase_step(graphics_context, sc, $direction, &mut total_flex_scale, &mut major_size_left, settings, child);
+                            $crate::visualizer::widgets::flex::_layout::first_phase_step(graphics_context, sc, $direction, &mut total_flex_scale, &mut major_size_left, $crate::visualizer::widgets::flex::_layout::animated_settings(settings), child);
                         }
                     )*
 
@@ -71,7 +63,7 @@ macro_rules! flex {
                     $(
                         {
                             let (settings, _, ref mut child) = self.$name;
-                            $crate::visualizer::widgets::flex::_layout::second_phase_step(graphics_context, sc, $direction, total_flex_scale, major_size_left, settings, child);
+                            $crate::visualizer::widgets::flex::_layout::second_phase_step(graphics_context, sc, $direction, total_flex_scale, major_size_left, $crate::visualizer::widgets::flex::_layout::animated_settings(settings), child);
                         }
                     )*
 
@@ -88,7 +80,7 @@ macro_rules! flex {
                     self.own_size = sc.clamp_size($direction.make_vector_in_direction(major_offset, max_minor_size));
                 }
 
-                fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, hover: Option<RenderObjectId>) {
+                fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, hover: Option<$crate::visualizer::render_object::RenderObjectId>) {
                     $(
                         {
                             let (_, offset, child) = &self.$name;
@@ -97,7 +89,7 @@ macro_rules! flex {
                     )*
                 }
 
-                fn find_hover(&self, top_left: graphics::Vector2f, mouse: graphics::Vector2f) -> Option<RenderObjectId> {
+                fn find_hover(&self, top_left: graphics::Vector2f, mouse: graphics::Vector2f) -> Option<$crate::visualizer::render_object::RenderObjectId> {
                     None
                         $(
                             .or({
@@ -111,14 +103,14 @@ macro_rules! flex {
                     self.own_size
                 }
 
-                fn send_targeted_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, target: RenderObjectId, event: event::TargetedEvent) {
+                fn send_targeted_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, target: $crate::visualizer::render_object::RenderObjectId, event: $crate::visualizer::event::TargetedEvent) {
                     $(
                         self.$name.2.send_targeted_event(top_left + self.$name.1, data, target, event);
                     )*
                 }
 
-                fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::TargetedEvent) {}
-                fn general_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, event: event::GeneralEvent) {
+                fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: $crate::visualizer::event::TargetedEvent) {}
+                fn general_event(&mut self, top_left: graphics::Vector2f, data: &mut Data, event: $crate::visualizer::event::GeneralEvent) {
                     $(
                         self.$name.2.general_event(top_left + self.$name.1, data, event);
                      )*

@@ -8,9 +8,21 @@ pub(crate) mod _layout {
     use crate::visualizer::{
         graphics::{self, GraphicsContext},
         layout::SizeConstraints,
-        render_object::RenderObject,
+        render_object::{
+            animated::{Animated, AnimatedValue, Lerpable},
+            RenderObject,
+        },
         widgets::flex::{Direction, ItemSettings},
     };
+
+    #[inline]
+    pub(crate) fn animated_settings(settings: Animated<ItemSettings>) -> ItemSettings {
+        match settings.get() {
+            AnimatedValue::Steady(s) => *s,
+            AnimatedValue::Animating { before: ItemSettings::Flex(before_flex), after: ItemSettings::Flex(after_flex), amount } => ItemSettings::Flex(before_flex.lerp(after_flex, amount)),
+            AnimatedValue::Animating { before: _, after, amount: _ } => *after,
+        }
+    }
 
     #[inline]
     pub(crate) fn first_phase_step<Data>(
@@ -60,7 +72,7 @@ pub(crate) mod _layout {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub(crate) enum ItemSettings {
     Fixed,
     Flex(f32),

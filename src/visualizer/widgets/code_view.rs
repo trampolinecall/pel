@@ -31,7 +31,6 @@ pub(crate) struct LineView<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Fo
     get_font: GetFont,
     font_size: u32,
 }
-// TODO: padding between lines
 
 #[derive(PartialEq, Eq)]
 struct LineHighlight {

@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use crate::visualizer::{
     event::{GeneralEvent, TargetedEvent},
     graphics, layout,
-    render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker},
+    render_object::{animated::Animated, RenderObject, RenderObjectId, RenderObjectIdMaker},
     widgets::{
         flex::{Direction, ItemSettings, _layout},
         Widget,
@@ -18,7 +18,7 @@ pub(crate) struct Flex<Data, Child: Widget<Data>> {
 }
 pub(crate) struct FlexRenderObject<Data, Child: RenderObject<Data>> {
     direction: Direction,
-    children: Vec<(ItemSettings, graphics::Vector2f, Child)>,
+    children: Vec<(Animated<ItemSettings>, graphics::Vector2f, Child)>,
 
     own_size: graphics::Vector2f,
 
@@ -44,7 +44,7 @@ impl<Data, Child: Widget<Data>> Widget<Data> for Flex<Data, Child> {
     fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
         FlexRenderObject {
             direction: self.direction,
-            children: self.children.into_iter().map(|(settings, child)| (settings, graphics::Vector2f::new(0.0, 0.0), child.to_render_object(id_maker))).collect(),
+            children: self.children.into_iter().map(|(settings, child)| (Animated::new(settings), graphics::Vector2f::new(0.0, 0.0), child.to_render_object(id_maker))).collect(),
             own_size: graphics::Vector2f::new(0.0, 0.0),
             _phantom: PhantomData,
             _private: (),
@@ -60,11 +60,12 @@ impl<Data, Child: Widget<Data>> Widget<Data> for Flex<Data, Child> {
             .into_iter()
             .zip(ro_children_infinite)
             .map(|((settings, widget), ro)| match ro {
-                Some((_, offset, mut ro)) => {
+                Some((mut old_settings, offset, mut ro)) => {
                     widget.update_render_object(&mut ro, id_maker);
-                    (settings, offset, ro)
+                    old_settings.set(settings);
+                    (old_settings, offset, ro)
                 }
-                None => (settings, graphics::Vector2f::new(0.0, 0.0), widget.to_render_object(id_maker)),
+                None => (Animated::new(settings), graphics::Vector2f::new(0.0, 0.0), widget.to_render_object(id_maker)),
             })
             .collect();
 
@@ -77,12 +78,12 @@ impl<Data, Child: RenderObject<Data>> RenderObject<Data> for FlexRenderObject<Da
         let mut total_flex_scale = 0.0;
         let mut major_size_left = self.direction.take_major_component(sc.max);
         for (settings, _, child) in &mut self.children {
-            _layout::first_phase_step(graphics_context, sc, self.direction, &mut total_flex_scale, &mut major_size_left, *settings, child);
+            _layout::first_phase_step(graphics_context, sc, self.direction, &mut total_flex_scale, &mut major_size_left, _layout::animated_settings(*settings), child);
         }
 
         // lay out all of the flex children
         for (settings, _, child) in &mut self.children {
-            _layout::second_phase_step(graphics_context, sc, self.direction, total_flex_scale, major_size_left, *settings, child);
+            _layout::second_phase_step(graphics_context, sc, self.direction, total_flex_scale, major_size_left, _layout::animated_settings(*settings), child);
         }
 
         // assign each of the offsets and calcaulte own_size
