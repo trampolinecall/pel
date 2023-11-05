@@ -87,10 +87,10 @@ impl Display for RuntimeErrorKind {
         match self {
             RuntimeErrorKind::VarUninitialized(vn) => write!(f, "variable '{}' is uninitialized", vn),
             RuntimeErrorKind::VarDoesNotExist(vn) => write!(f, "variable '{}' does not exist", vn),
-            RuntimeErrorKind::InvalidTypeForShortCircuitOp(_, _) => todo!(),
-            RuntimeErrorKind::InvalidTypesForBinaryOp(_, _, _) => todo!(),
-            RuntimeErrorKind::InvalidTypeForUnaryOp(_, _) => todo!(),
-            RuntimeErrorKind::ExpectedBool(_) => todo!(),
+            RuntimeErrorKind::InvalidTypeForShortCircuitOp(op, ty) => write!(f, "invalid type '{ty}' to operator logical operator '{op}'"),
+            RuntimeErrorKind::InvalidTypesForBinaryOp(op, lty, rty) => write!(f, "invalid types '{lty}' and '{rty}' to operator '{op}'"),
+            RuntimeErrorKind::InvalidTypeForUnaryOp(op, ty) => write!(f, "invalid type '{ty}' to unary operator '{op}'"),
+            RuntimeErrorKind::ExpectedBool(got_ty) => write!(f, "expected 'bool', got '{got_ty}'"),
         }
     }
 }

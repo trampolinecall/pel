@@ -52,7 +52,7 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
             InterpreterViewState::Finished { result: Err(err) } => Either::new_right(Either::new_left(flex! {
                 horizontal
                 code_view: flex::ItemSettings::Flex(0.3), Padding::all_around(code_view((err.span, Color::rgb(150, 0, 0)), Vec::new(), Fonts::text_font, 15, Fonts::monospace_font, 15), 5.0),
-                msg: flex::ItemSettings::Flex(0.2), Padding::all_around(Label::new(format!("interpreter had error: {}", err.kind), Fonts::text_font, 15), 5.0),
+                msg: flex::ItemSettings::Flex(0.3), Padding::all_around(Label::new(format!("interpreter had error: {}", err.kind), Fonts::text_font, 15), 5.0),
             })),
         };
 
