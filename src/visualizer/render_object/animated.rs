@@ -7,13 +7,14 @@ pub(crate) struct Animated<T> {
     last: Option<T>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, )]
 pub(crate) enum AnimatedValue<'t, T> {
     Steady(&'t T),
     Animating { before: &'t T, after: &'t T, amount: f64 },
 }
 
 // TODO: have configurable animation duration
-const ANIMATION_DURATION: Duration = Duration::from_millis(200);
+const ANIMATION_DURATION: Duration = Duration::from_millis(1000);
 
 // TODO: allow choice between different easing functions
 fn ease(x: f64) -> f64 {
@@ -63,12 +64,18 @@ impl<T: PartialEq> Animated<T> {
     }
 }
 
+impl<'t, T: Lerpable + Copy> AnimatedValue<'t, T> {
+    pub(crate) fn lerp(&self) -> T {
+        match self {
+            AnimatedValue::Steady(s) => **s,
+            AnimatedValue::Animating { before, after, amount } => before.lerp(after, *amount),
+        }
+    }
+}
+
 impl<T: Lerpable + Copy> Animated<T> {
     pub(crate) fn get_lerped(&self) -> T {
-        match self.get() {
-            AnimatedValue::Steady(s) => *s,
-            AnimatedValue::Animating { before, after, amount } => before.lerp(after, amount),
-        }
+        self.get().lerp()
     }
 }
 

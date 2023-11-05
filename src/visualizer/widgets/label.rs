@@ -1,8 +1,8 @@
-use sfml::graphics::{Font, Shape, Transformable};
+use sfml::graphics::{Font, Transformable};
 
 use crate::visualizer::{
     event, graphics, layout,
-    render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker, util},
+    render_object::{util, RenderObject, RenderObjectId, RenderObjectIdMaker},
     widgets::Widget,
 };
 
@@ -36,6 +36,8 @@ impl<GetFont: Fn(&graphics::Fonts) -> &Font, Data> Widget<Data> for Label<GetFon
 
     fn update_render_object(self, render_object: &mut Self::Result, _: &mut RenderObjectIdMaker) {
         render_object.text = self.text;
+        render_object.get_font = self.get_font;
+        render_object.font_size = self.font_size;
     }
 }
 
