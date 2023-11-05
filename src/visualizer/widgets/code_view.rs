@@ -366,23 +366,23 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject
     fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, _: Option<RenderObjectId>) {
         // TODO: deal with overflow better than by clipping (scrolling?)
         // TODO: also fix messy rendering that is caused by clipping
-        // util::clip(graphics_context, target, graphics::FloatRect::from_vecs(top_left, self.size), |target, top_left| {
-        let mut text = graphics::Text::new(self.contents, (self.get_font)(&graphics_context.fonts), self.font_size);
-        text.set_position(top_left);
-        text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
+        util::clip(graphics_context, target, graphics::FloatRect::from_vecs(top_left, self.size), |target, top_left| {
+            let mut text = graphics::Text::new(self.contents, (self.get_font)(&graphics_context.fonts), self.font_size);
+            text.set_position(top_left);
+            text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
 
-        for (highlight, shown_amount) in &self.highlights {
-            draw_line_highlights(target, &text, self.contents, self.main_line_height(graphics_context), *highlight, shown_amount);
-        }
+            for (highlight, shown_amount) in &self.highlights {
+                draw_line_highlights(target, &text, self.contents, self.main_line_height(graphics_context), *highlight, shown_amount);
+            }
 
-        for (chunk_range, chunk_shrink) in &self.chunks {
-            draw_text_chunk(target, &text, self.contents, self.main_line_height(graphics_context), (self.get_font)(&graphics_context.fonts), self.font_size, chunk_range, chunk_shrink);
-        }
+            for (chunk_range, chunk_shrink) in &self.chunks {
+                draw_text_chunk(target, &text, self.contents, self.main_line_height(graphics_context), (self.get_font)(&graphics_context.fonts), self.font_size, chunk_range, chunk_shrink);
+            }
 
-        for ((substitution_range, substitution_text), substitution_shown) in &self.substitutions {
-            draw_text_substitution(target, &text, (self.get_font)(&graphics_context.fonts), self.font_size, substitution_range, substitution_text, substitution_shown);
-        }
-        // });
+            for ((substitution_range, substitution_text), substitution_shown) in &self.substitutions {
+                draw_text_substitution(target, &text, (self.get_font)(&graphics_context.fonts), self.font_size, substitution_range, substitution_text, substitution_shown);
+            }
+        });
     }
 
     fn find_hover(&self, top_left: graphics::Vector2f, mouse: graphics::Vector2f) -> Option<RenderObjectId> {
