@@ -1,4 +1,4 @@
-use sfml::graphics::{Font, Transformable};
+use sfml::graphics::{Font, Transformable, Shape};
 
 use crate::visualizer::{
     event, graphics, layout,
@@ -46,7 +46,7 @@ impl<GetFont: Fn(&graphics::Fonts) -> &Font, Data> RenderObject<Data> for LabelR
     }
 
     fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, _: Option<RenderObjectId>) {
-        // TODO: deal with overflow (clipping does not work because the bounding box does not include descenders)
+        // TODO: deal with overflow (clipping does not work because the bounding box is not correct)
         // util::clip(graphics_context, target, graphics::FloatRect::from_vecs(top_left, self.size), |target, top_left| {
         let mut text = graphics::Text::new(&self.text, (self.get_font)(&graphics_context.fonts), self.font_size);
         text.set_position(top_left);
