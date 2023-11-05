@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::Hash};
+use std::{collections::HashMap, hash::Hash, ops::Range};
 
 use sfml::graphics::{Shape, Transformable};
 
@@ -32,7 +32,7 @@ pub(crate) struct LineView<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Fo
     font_size: u32,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Copy, Clone)]
 struct LineHighlight {
     start: HighlightStartPosition,
     end: HighlightEndPosition,
@@ -54,9 +54,14 @@ enum HighlightShownAmount {
     AllShown,
     CompressedToRight,
 }
+struct ChunkShrink {
+    start_index: usize,
+    end_index: usize,
+}
 pub(crate) struct LineViewRenderObject<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font> {
     id: RenderObjectId,
     contents: &'file str,
+    chunks: Vec<(Range<usize>, Animated<Option<ChunkShrink>>)>,
     highlights: HashMap<LineHighlight, Animated<HighlightShownAmount>>,
     size: graphics::Vector2f,
     get_font: GetFont,
@@ -121,6 +126,7 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
         LineViewRenderObject {
             id: id_maker.next_id(),
             contents: self.contents,
+            chunks: vec![(0..self.contents.len(), Animated::new(None))],
             highlights: self
                 .highlights
                 .into_iter()
@@ -181,6 +187,8 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
         });
 
         render_object.highlights = requested_highlights.into_iter().chain(left_over).collect();
+
+        // TODO: deal with chunks
     }
 }
 
@@ -199,47 +207,13 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject
             text.set_position(top_left);
             text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
 
-            for (LineHighlight { start, end, color }, shown_amount) in &self.highlights {
-                let highlight_start_index = match start {
-                    HighlightStartPosition::Start => 0,
-                    HighlightStartPosition::Index(i) => *i,
-                };
-                let highlight_end_index = match end {
-                    HighlightEndPosition::End => self.contents.len(),
-                    HighlightEndPosition::Index(i) => *i,
-                };
-
-                let (left_x_interp, width_amount) = {
-                    let get_positions_from_shown_amount = |shown_amount| match shown_amount {
-                        HighlightShownAmount::CompressedToLeft => (0.0, 0.0),
-                        HighlightShownAmount::AllShown => (0.0, 1.0),
-                        HighlightShownAmount::CompressedToRight => (1.0, 0.0),
-                    };
-                    match shown_amount.get() {
-                        AnimatedValue::Steady(sa) => get_positions_from_shown_amount(*sa),
-                        AnimatedValue::Animating { before: start_sa, after: end_sa, amount: lerp_interp_amount } => {
-                            let (start_left_x, start_width) = get_positions_from_shown_amount(*start_sa);
-                            let (end_left_x, end_width) = get_positions_from_shown_amount(*end_sa);
-                            (start_left_x.lerp(&end_left_x, lerp_interp_amount), start_width.lerp(&end_width, lerp_interp_amount))
-                        }
-                    }
-                };
-
-                let highlight_start_pos = text.find_character_pos(highlight_start_index);
-                let highlight_end_pos = text.find_character_pos(highlight_end_index);
-                let highlight_width = highlight_end_pos.x - highlight_start_pos.x;
-
-                let mut highlight_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(
-                    highlight_start_pos + graphics::Vector2f::new(left_x_interp * highlight_width, 0.0),
-                    graphics::Vector2f::new(highlight_width * width_amount, self.size.y),
-                ));
-
-                highlight_rect.set_fill_color(*color);
-
-                target.draw(&highlight_rect);
+            for (highlight, shown_amount) in &self.highlights {
+                draw_line_highlights(target, &text, self.contents, self.size.y, *highlight, shown_amount);
             }
 
-            target.draw(&text);
+            for (chunk_range, chunk_shrink) in &self.chunks {
+                draw_text_chunk(target, &text, self.contents, self.size.y, (self.get_font)(&graphics_context.fonts), self.font_size, chunk_range, chunk_shrink);
+            }
         });
     }
 
@@ -263,4 +237,97 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject
 
     fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::TargetedEvent) {}
     fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::GeneralEvent) {}
+}
+
+fn draw_line_highlights(
+    target: &mut dyn graphics::RenderTarget,
+    line_text: &graphics::Text,
+    line_contents: &str,
+    line_height: f32,
+    LineHighlight { start, end, color }: LineHighlight,
+    shown_amount: &Animated<HighlightShownAmount>,
+) {
+    let highlight_start_index = match start {
+        HighlightStartPosition::Start => 0,
+        HighlightStartPosition::Index(i) => i,
+    };
+    let highlight_end_index = match end {
+        HighlightEndPosition::End => line_contents.len(),
+        HighlightEndPosition::Index(i) => i,
+    };
+
+    let (left_x_interp, width_amount) = {
+        let get_positions_from_shown_amount = |shown_amount| match shown_amount {
+            HighlightShownAmount::CompressedToLeft => (0.0, 0.0),
+            HighlightShownAmount::AllShown => (0.0, 1.0),
+            HighlightShownAmount::CompressedToRight => (1.0, 0.0),
+        };
+        match shown_amount.get() {
+            AnimatedValue::Steady(sa) => get_positions_from_shown_amount(*sa),
+            AnimatedValue::Animating { before: start_sa, after: end_sa, amount: lerp_interp_amount } => {
+                let (start_left_x, start_width) = get_positions_from_shown_amount(*start_sa);
+                let (end_left_x, end_width) = get_positions_from_shown_amount(*end_sa);
+                (start_left_x.lerp(&end_left_x, lerp_interp_amount), start_width.lerp(&end_width, lerp_interp_amount))
+            }
+        }
+    };
+
+    let highlight_start_pos = line_text.find_character_pos(highlight_start_index);
+    // TODO: highlight end position should really be the right edge of the last character included in the highlight, not the left edge of the first character next to the highlight
+    let highlight_end_pos = line_text.find_character_pos(highlight_end_index);
+    let highlight_width = highlight_end_pos.x - highlight_start_pos.x;
+
+    let mut highlight_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(
+        highlight_start_pos + graphics::Vector2f::new(left_x_interp * highlight_width, 0.0),
+        graphics::Vector2f::new(highlight_width * width_amount, line_height),
+    ));
+
+    highlight_rect.set_fill_color(color);
+
+    target.draw(&highlight_rect);
+}
+
+fn draw_text_chunk(
+    target: &mut dyn graphics::RenderTarget,
+    line_text: &graphics::Text,
+    line_contents: &str,
+    line_height: f32,
+    font: &graphics::Font,
+    font_size: u32,
+    chunk_range: &Range<usize>,
+    shrink: &Animated<Option<ChunkShrink>>,
+) {
+    const SHRINK_SCALE_FACTOR: f32 = 0.5; // TODO: put this in a better place
+
+    let chunk_top_left = line_text.find_character_pos(chunk_range.start);
+    let mut chunk_text = graphics::Text::new(&line_contents[chunk_range.start..chunk_range.end], font, font_size);
+
+    let calculate_transforms_for_shrink = |ChunkShrink { start_index: shrink_start_index, end_index: shrink_end_index }: &_| {
+        let shrink_begin_pos = line_text.find_character_pos(*shrink_start_index);
+        let shrink_end_pos = line_text.find_character_pos(*shrink_end_index);
+
+        let shrink_center_x = (shrink_begin_pos.x + shrink_end_pos.x) / 2.0;
+
+        // TODO: using line_hieght * 0.5 here is completely incorrect; this really should be like the y coordinate of the text baseline or something
+        (graphics::Vector2f::new(shrink_center_x - chunk_top_left.x, 0.0), line_height * 0.5, SHRINK_SCALE_FACTOR)
+    };
+    let calculate_transforms_for_maybe_shrink = |maybe_shrink: &_| match maybe_shrink {
+        Some(shrink) => calculate_transforms_for_shrink(shrink),
+        None => (graphics::Vector2f::new(0.0, 0.0), 0.0, 1.0),
+    };
+    let (chunk_origin, y_offset, scale) = match shrink.get() {
+        AnimatedValue::Steady(m_shrink) => calculate_transforms_for_maybe_shrink(m_shrink),
+        AnimatedValue::Animating { before, after, amount } => {
+            let before_transforms = calculate_transforms_for_maybe_shrink(before);
+            let after_transforms = calculate_transforms_for_maybe_shrink(after);
+            (before_transforms.0.lerp(&after_transforms.0, amount), before_transforms.1.lerp(&after_transforms.1, amount), before_transforms.2.lerp(&after_transforms.2, amount))
+        }
+    };
+
+    chunk_text.set_origin(chunk_origin);
+    chunk_text.move_(chunk_top_left + chunk_origin);
+    chunk_text.move_((0.0, y_offset));
+    chunk_text.scale((scale, scale));
+
+    target.draw(&chunk_text);
 }
