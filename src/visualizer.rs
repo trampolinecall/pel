@@ -52,7 +52,7 @@ pub(crate) fn run<Model, ModelAsWidget: Widget<Model>>(window_name: &'static str
     window.set_vertical_sync_enabled(true);
 
     while window.is_open() {
-        // TODO: this doesnt seem right
+        // TODO: having this variable doesnt seem right
         let view_top_left = graphics::Vector2f::new(0.0, 0.0);
 
         // events
@@ -67,7 +67,7 @@ pub(crate) fn run<Model, ModelAsWidget: Widget<Model>>(window_name: &'static str
                 }
 
                 sfml::window::Event::MouseButtonPressed { button, x, y } => {
-                    let mouse_position = graphics::Vector2f::new(x as f32, y as f32); // TODO: clean up casts (also clean up in rest of module too)
+                    let mouse_position = graphics::Vector2f::new(x as f32, y as f32);
                     let hovered = render_object.find_hover(view_top_left, mouse_position);
                     if let Some(hovered) = hovered {
                         match button {
@@ -78,7 +78,7 @@ pub(crate) fn run<Model, ModelAsWidget: Widget<Model>>(window_name: &'static str
                     }
                 }
 
-                sfml::window::Event::MouseMoved { x, y } => render_object.general_event(view_top_left, &mut model, GeneralEvent::MouseMoved(graphics::Vector2f::new(x as f32, y as f32))), // TODO: change the event to accept 2 i32s
+                sfml::window::Event::MouseMoved { x, y } => render_object.general_event(view_top_left, &mut model, GeneralEvent::MouseMoved(graphics::Vector2f::new(x as f32, y as f32))),
 
                 sfml::window::Event::MouseButtonReleased { button: sfml::window::mouse::Button::Left, x: _, y: _ } => render_object.general_event(view_top_left, &mut model, GeneralEvent::LeftMouseUp),
                 sfml::window::Event::MouseButtonReleased { button: sfml::window::mouse::Button::Right, x: _, y: _ } => {

@@ -64,46 +64,6 @@ pub(crate) struct LineViewRenderObject<'file, GetFont: Fn(&graphics::Fonts) -> &
     _private: (),
 }
 
-impl Lerpable for Option<(HighlightStartPosition, HighlightEndPosition)> {
-    fn lerp(&self, other: &Self, amount: f64) -> Self {
-        let (start_positions, end_positions) = match (self, other) {
-            (None, None) => return None,
-            (None, Some(end_positions)) => ((HighlightStartPosition::Start, HighlightEndPosition::Index(0)), *end_positions),
-            (Some(start_positions), None) => (*start_positions, (HighlightStartPosition::Start, HighlightEndPosition::Index(0))), // TODO: figure this out better
-            (Some(start_positions), Some(end_positions)) => (*start_positions, *end_positions),
-        };
-
-        let highlight_start_lerped = start_positions.0.lerp(&end_positions.0, amount);
-        let highlight_end_lerped = start_positions.1.lerp(&end_positions.1, amount);
-
-        Some((highlight_start_lerped, highlight_end_lerped))
-    }
-}
-impl Lerpable for HighlightStartPosition {
-    fn lerp(&self, other: &Self, amount: f64) -> Self {
-        // TODO: figure out how to deal with indexes because they cannot be floats
-        let convert_start_to_0 = |position: &_| match position {
-            HighlightStartPosition::Start => 0,
-            HighlightStartPosition::Index(i) => *i,
-        };
-        let start = convert_start_to_0(self);
-        let end = convert_start_to_0(other);
-        HighlightStartPosition::Index(start.lerp(&end, amount))
-    }
-}
-impl Lerpable for HighlightEndPosition {
-    fn lerp(&self, other: &Self, amount: f64) -> Self {
-        // TODO: figure out how to deal with indexes because they cannot be floats
-        let convert_end_to_100 = |position: &_| match position {
-            HighlightEndPosition::End => 100, // TODO: do this better
-            HighlightEndPosition::Index(i) => *i,
-        };
-        let start = convert_end_to_100(self);
-        let end = convert_end_to_100(other);
-        HighlightEndPosition::Index(start.lerp(&end, amount))
-    }
-}
-
 // TODO: messages
 // TODO: scrolling
 // TODO: syntax highlighting
