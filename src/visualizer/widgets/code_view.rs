@@ -357,7 +357,7 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject
         }
 
         for ((substitution_range, substitution_text), substitution_shown) in &self.substitutions {
-            draw_text_substitution(target, &text, self.contents, self.size.y, (self.get_font)(&graphics_context.fonts), self.font_size, substitution_range, substitution_text, substitution_shown);
+            draw_text_substitution(target, &text, (self.get_font)(&graphics_context.fonts), self.font_size, substitution_range, substitution_text, substitution_shown);
         }
         // });
     }
@@ -387,8 +387,6 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject
 fn draw_text_substitution(
     target: &mut dyn graphics::RenderTarget,
     line_text: &graphics::Text<'_>,
-    line_contents: &str,
-    line_height: f32,
     font: &graphics::Font,
     font_size: u32,
     substitution_range: &Range<usize>,
@@ -400,7 +398,7 @@ fn draw_text_substitution(
 
     // TODO: handle when the substitution is wider than the text it replaces and doenst fit into the shrunken portion
     let alpha = match substitution_shown.get() {
-        AnimatedValue::Steady(v) => (*v as u8 * 255) as u8,
+        AnimatedValue::Steady(v) => *v as u8 * 255,
         AnimatedValue::Animating { before, after, amount } => (*before as u8 * 255).lerp(&(*after as u8 * 255), amount),
     };
     chunk_text.set_position(substitution_top_left);
