@@ -25,6 +25,8 @@ enum HighlightEndPosition {
     Index(usize),
 }
 
+const SHRINK_SCALE_FACTOR: f32 = 0.8; // TODO: put this in a better place
+
 pub(crate) struct LineView<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font> {
     contents: &'file str,
     highlights: Vec<LineHighlight>,
@@ -333,11 +335,21 @@ fn construct_highlights(highlights: Vec<LineHighlight>) -> HashMap<LineHighlight
         .collect()
 }
 
+impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font> LineViewRenderObject<'file, GetFont> {
+    fn main_line_height(&self, graphics_context: &graphics::GraphicsContext) -> f32 {
+        let text = graphics::Text::new(self.contents, (self.get_font)(&graphics_context.fonts), self.font_size);
+        let global_bounds = text.global_bounds();
+        // TODO: don't hardcode this value (detect from font size?)
+        15.0_f32.max(global_bounds.top + global_bounds.height)
+    }
+}
 impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject<Data> for LineViewRenderObject<'file, GetFont> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         let text = graphics::Text::new(self.contents, (self.get_font)(&graphics_context.fonts), self.font_size);
         let global_bounds = text.global_bounds();
-        self.size = sc.clamp_size(graphics::Vector2f::new(global_bounds.left + global_bounds.width, global_bounds.top + global_bounds.height));
+        let main_line_height = self.main_line_height(graphics_context);
+        let shrunken_height = main_line_height * SHRINK_SCALE_FACTOR;
+        self.size = sc.clamp_size(graphics::Vector2f::new(global_bounds.left + global_bounds.width, main_line_height + shrunken_height));
     }
 
     fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, _: Option<RenderObjectId>) {
@@ -349,11 +361,11 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject
         text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
 
         for (highlight, shown_amount) in &self.highlights {
-            draw_line_highlights(target, &text, self.contents, self.size.y, *highlight, shown_amount);
+            draw_line_highlights(target, &text, self.contents, self.main_line_height(graphics_context), *highlight, shown_amount);
         }
 
         for (chunk_range, chunk_shrink) in &self.chunks {
-            draw_text_chunk(target, &text, self.contents, self.size.y, (self.get_font)(&graphics_context.fonts), self.font_size, chunk_range, chunk_shrink);
+            draw_text_chunk(target, &text, self.contents, self.main_line_height(graphics_context), (self.get_font)(&graphics_context.fonts), self.font_size, chunk_range, chunk_shrink);
         }
 
         for ((substitution_range, substitution_text), substitution_shown) in &self.substitutions {
@@ -393,24 +405,27 @@ fn draw_text_substitution(
     substitution_text: &str,
     substitution_shown: &Animated<bool>,
 ) {
-    let substitution_top_left = line_text.find_character_pos(substitution_range.start);
-    let mut chunk_text = graphics::Text::new(substitution_text, font, font_size);
+    let top_left = line_text.find_character_pos(substitution_range.start);
+    let top_right = line_text.find_character_pos(substitution_range.end);
+    let mut text = graphics::Text::new(substitution_text, font, font_size);
 
     // TODO: handle when the substitution is wider than the text it replaces and doenst fit into the shrunken portion
     let alpha = match substitution_shown.get() {
         AnimatedValue::Steady(v) => *v as u8 * 255,
         AnimatedValue::Animating { before, after, amount } => (*before as u8 * 255).lerp(&(*after as u8 * 255), amount),
     };
-    chunk_text.set_position(substitution_top_left);
-    chunk_text.set_fill_color(graphics::Color::rgba(255, 255, 255, alpha)); // TODO: control color
-    target.draw(&chunk_text);
+
+    text.set_origin((text.global_bounds().width / 2.0, 0.0));
+    text.set_position((top_left + top_right) / 2.0);
+    text.set_fill_color(graphics::Color::rgba(255, 255, 255, alpha)); // TODO: control color
+    target.draw(&text);
 }
 
 fn draw_line_highlights(
     target: &mut dyn graphics::RenderTarget,
     line_text: &graphics::Text,
     line_contents: &str,
-    line_height: f32,
+    main_line_height: f32,
     LineHighlight { start, end, color }: LineHighlight,
     shown_amount: &Animated<HighlightShownAmount>,
 ) {
@@ -446,7 +461,7 @@ fn draw_line_highlights(
 
     let mut highlight_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(
         highlight_start_pos + graphics::Vector2f::new(left_x_interp * highlight_width, 0.0),
-        graphics::Vector2f::new(highlight_width * width_amount, line_height),
+        graphics::Vector2f::new(highlight_width * width_amount, main_line_height),
     ));
 
     highlight_rect.set_fill_color(color);
@@ -458,14 +473,12 @@ fn draw_text_chunk(
     target: &mut dyn graphics::RenderTarget,
     line_text: &graphics::Text,
     line_contents: &str,
-    line_height: f32,
+    main_line_height: f32,
     font: &graphics::Font,
     font_size: u32,
     chunk_range: &Range<usize>,
     shrink: &Animated<Option<ChunkShrink>>,
 ) {
-    const SHRINK_SCALE_FACTOR: f32 = 0.5; // TODO: put this in a better place
-
     let chunk_top_left = line_text.find_character_pos(chunk_range.start);
     let mut chunk_text = graphics::Text::new(&line_contents[chunk_range.start..chunk_range.end], font, font_size);
 
@@ -475,8 +488,7 @@ fn draw_text_chunk(
 
         let shrink_center_x = (shrink_begin_pos.x + shrink_end_pos.x) / 2.0;
 
-        // TODO: using line_hieght * 0.5 here is completely incorrect; this really should be like the y coordinate of the text baseline or something
-        (graphics::Vector2f::new(shrink_center_x - chunk_top_left.x, 0.0), line_height * 0.5, SHRINK_SCALE_FACTOR)
+        (graphics::Vector2f::new(shrink_center_x - chunk_top_left.x, 0.0), main_line_height, SHRINK_SCALE_FACTOR)
     };
     let calculate_transforms_for_maybe_shrink = |maybe_shrink: &_| match maybe_shrink {
         Some(shrink) => calculate_transforms_for_shrink(shrink),

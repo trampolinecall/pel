@@ -14,7 +14,7 @@ pub(crate) enum AnimatedValue<'t, T> {
 }
 
 // TODO: have configurable animation duration
-const ANIMATION_DURATION: Duration = Duration::from_millis(1000);
+const ANIMATION_DURATION: Duration = Duration::from_millis(200);
 
 // TODO: allow choice between different easing functions
 fn ease(x: f64) -> f64 {

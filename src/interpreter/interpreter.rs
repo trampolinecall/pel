@@ -36,13 +36,14 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
         let make_message = |message| Either::new_left(Label::new(message, Fonts::text_font, 15));
         let widget = match &self.state {
             InterpreterViewState::NotStarted => make_message("interpreter not started".to_string()),
-            InterpreterViewState::AboutToExecute(InterpretYield { msg, primary_highlight: highlight, state, secondary_highlights }) => {
+            InterpreterViewState::AboutToExecute(InterpretYield { msg, primary_highlight, secondary_highlights, substitutions, state }) => {
                 // TODO: hashmap does not preserve order that variables are created
                 // TODO: padding constant
+                // TODO: adjustable font size
 
                 Either::new_right(Either::new_right(flex! {
                     horizontal
-                    code_view: flex::ItemSettings::Flex(0.3), Padding::all_around(code_view((*highlight, Color::rgb(50, 100, 50)), secondary_highlights.clone(), vec![(*highlight, "aaa".to_string())], Fonts::text_font, 15, Fonts::monospace_font, 15), 5.0), // TODO: pick better colors, also TODO: do actual substitutions
+                    code_view: flex::ItemSettings::Flex(0.3), Padding::all_around(code_view((*primary_highlight, Color::rgb(50, 100, 50)), secondary_highlights.clone(), substitutions.clone(), Fonts::text_font, 15, Fonts::monospace_font, 15), 5.0), // TODO: pick better colors
                     program_output: flex::ItemSettings::Flex(0.3), Padding::all_around(Label::new(state.program_output.clone(), Fonts::monospace_font, 15), 5.0), // TODO: scrolling, min size, fixed size?, scroll to bottom automatically
                     env_view: flex::ItemSettings::Flex(0.2), Padding::all_around(view_env(&state.env), 5.0),
                     msg: flex::ItemSettings::Flex(0.2), Padding::all_around(Label::new(format!("running\n{msg}"), Fonts::text_font, 15), 5.0),

@@ -67,6 +67,7 @@ pub(super) struct InterpretYield<'file> {
     pub(super) msg: String,
     pub(super) primary_highlight: Span<'file>,
     pub(super) secondary_highlights: Vec<(Span<'file>, Color)>,
+    pub(super) substitutions: Vec<(Span<'file>, String)>,
     pub(super) state: InterpreterState<'file>,
 }
 
@@ -117,13 +118,21 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
         StmtKind::Block(stmts) => interpret_statements(state, stmts, co).await,
 
         StmtKind::Expr(e) => {
-            interpret_expr(state, e, co).await?;
+            interpret_expr(state, &Vec::new(), e, co).await?;
             Ok(())
         }
 
         StmtKind::Print(v) => {
-            let v = interpret_expr(state, v, co).await?;
-            co.yield_(InterpretYield { msg: format!("print value {}", ReprValue(&v)), primary_highlight: stmt.span, secondary_highlights: Vec::new(), state: state.clone() }).await;
+            let v_span = v.span;
+            let v = interpret_expr(state, &Vec::new(), v, co).await?;
+            co.yield_(InterpretYield {
+                msg: format!("print value {}", ReprValue(&v)),
+                primary_highlight: stmt.span,
+                secondary_highlights: Vec::new(),
+                state: state.clone(),
+                substitutions: vec![(v_span, ReprValue(&v).to_string())],
+            })
+            .await;
             state.program_output += &DisplayValue(&v).to_string();
             state.program_output += "\n";
             Ok(())
@@ -132,17 +141,26 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
         StmtKind::Return(_) => todo!(),
 
         StmtKind::MakeVar(vname, None) => {
-            co.yield_(InterpretYield { msg: format!("make uninitialized variable '{vname}'"), primary_highlight: stmt.span, secondary_highlights: Vec::new(), state: state.clone() }).await;
+            co.yield_(InterpretYield {
+                msg: format!("make uninitialized variable '{vname}'"),
+                primary_highlight: stmt.span,
+                secondary_highlights: Vec::new(),
+                substitutions: Vec::new(),
+                state: state.clone(),
+            })
+            .await;
             state.env.define_var(vname.clone(), stmt.span, None);
             Ok(())
         }
 
         StmtKind::MakeVar(vname, Some(initializer)) => {
-            let initializer = interpret_expr(state, initializer, co).await?;
+            let initializer_span = initializer.span;
+            let initializer = interpret_expr(state, &Vec::new(), initializer, co).await?;
             co.yield_(InterpretYield {
                 msg: format!("make variable '{vname}' with initializer {}", ReprValue(&initializer)),
                 primary_highlight: stmt.span,
                 secondary_highlights: Vec::new(),
+                substitutions: vec![(initializer_span, ReprValue(&initializer).to_string())],
                 state: state.clone(),
             })
             .await;
@@ -151,9 +169,16 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
         }
 
         StmtKind::AssignVar(var, v) => {
-            let v = interpret_expr(state, v, co).await?;
-            co.yield_(InterpretYield { msg: format!("assign variable '{var}' with value {}", ReprValue(&v)), primary_highlight: stmt.span, secondary_highlights: Vec::new(), state: state.clone() })
-                .await;
+            let v_span = v.span;
+            let v = interpret_expr(state, &Vec::new(), v, co).await?;
+            co.yield_(InterpretYield {
+                msg: format!("assign variable '{var}' with value {}", ReprValue(&v)),
+                primary_highlight: stmt.span,
+                secondary_highlights: Vec::new(),
+                substitutions: vec![(v_span, ReprValue(&v).to_string())],
+                state: state.clone(),
+            })
+            .await;
             match state.env.lookup_mut(&var) {
                 Some(v_place) => {
                     v_place.1 = Some(v);
@@ -168,8 +193,15 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
 
         StmtKind::If(if_span, cond, t, f) => {
             let cond_span = cond.span;
-            let cond = interpret_expr(state, cond, co).await?;
-            co.yield_(InterpretYield { msg: "check condition".to_string(), primary_highlight: if_span, secondary_highlights: Vec::new(), state: state.clone() }).await;
+            let cond = interpret_expr(state, &Vec::new(), cond, co).await?;
+            co.yield_(InterpretYield {
+                msg: "check condition".to_string(),
+                primary_highlight: if_span,
+                secondary_highlights: Vec::new(),
+                substitutions: vec![(cond_span, ReprValue(&cond).to_string())],
+                state: state.clone(),
+            })
+            .await;
             match cond {
                 Value::Bool(true) => interpret_statement(state, *t, co).await,
                 Value::Bool(false) => {
@@ -182,13 +214,20 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
             }
         }
 
-        StmtKind::While(while_span, cond, body) => loop {
-            let cond_value = interpret_expr(state, cond.clone(), co).await?;
-            co.yield_(InterpretYield { msg: "check condition".to_string(), primary_highlight: while_span, secondary_highlights: Vec::new(), state: state.clone() }).await;
+        StmtKind::While(while_span, cond_ast, body) => loop {
+            let cond_value = interpret_expr(state, &Vec::new(), cond_ast.clone(), co).await?;
+            co.yield_(InterpretYield {
+                msg: "check condition".to_string(),
+                primary_highlight: while_span,
+                secondary_highlights: Vec::new(),
+                substitutions: vec![(cond_ast.span, ReprValue(&cond_value).to_string())],
+                state: state.clone(),
+            })
+            .await;
             match cond_value {
                 Value::Bool(true) => {}
                 Value::Bool(false) => break Ok(()),
-                _ => break Err(RuntimeError { span: cond.span, kind: RuntimeErrorKind::ExpectedBool(cond_value.type_()) }),
+                _ => break Err(RuntimeError { span: cond_ast.span, kind: RuntimeErrorKind::ExpectedBool(cond_value.type_()) }),
             }
 
             interpret_statement(state, (*body).clone(), co).await?;
@@ -196,11 +235,28 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
     }
 }
 
+fn add_substitution<'file>(substitutions: &[(Span<'file>, String)], (sp, thing): (Span<'file>, impl ToString)) -> Vec<(Span<'file>, String)> {
+    let mut new_substitutions = substitutions.to_vec();
+    new_substitutions.push((sp, thing.to_string()));
+    new_substitutions
+}
 #[async_recursion]
-async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(state: &mut InterpreterState<'file>, e: Expr<'file>, co: &ICo<'file>) -> Result<Value, RuntimeError<'file>> {
+async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(
+    state: &mut InterpreterState<'file>,
+    substitutions: &Vec<(Span<'file>, String)>,
+    e: Expr<'file>,
+    co: &ICo<'file>,
+) -> Result<Value, RuntimeError<'file>> {
     match e.kind {
         ExprKind::Var(vname) => {
-            co.yield_(InterpretYield { msg: format!("read variable '{vname}'"), primary_highlight: e.span, secondary_highlights: Vec::new(), state: state.clone() }).await;
+            co.yield_(InterpretYield {
+                msg: format!("read variable '{vname}'"),
+                primary_highlight: e.span,
+                secondary_highlights: Vec::new(),
+                state: state.clone(),
+                substitutions: substitutions.clone(),
+            })
+            .await;
             match state.env.lookup(&vname) {
                 Some((_, Some(v))) => Ok(v.clone()),
                 Some((_, None)) => Err(RuntimeError { span: e.span, kind: RuntimeErrorKind::VarUninitialized(vname) }),
@@ -211,7 +267,7 @@ async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(state: &mut 
         ExprKind::Float(f) => Ok(Value::Float(f)),
         ExprKind::String(s) => Ok(Value::String(s)),
         ExprKind::Bool(b) => Ok(Value::Bool(b)),
-        ExprKind::Parenthesized(e) => Ok(interpret_expr(state, *e, co).await?),
+        ExprKind::Parenthesized(e) => Ok(interpret_expr(state, substitutions, *e, co).await?),
         ExprKind::Call(_, _) => {
             todo!()
         }
@@ -219,17 +275,17 @@ async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(state: &mut 
             let left_span = left.span;
             let right_span = right.span;
             match op {
-                ShortCircuitOp::Or => match interpret_expr(state, *left, co).await? {
+                ShortCircuitOp::Or => match interpret_expr(state, substitutions, *left, co).await? {
                     Value::Bool(true) => Ok(Value::Bool(true)),
-                    Value::Bool(false) => match interpret_expr(state, *right, co).await? {
+                    left @ Value::Bool(false) => match interpret_expr(state, &[&**substitutions, &add_substitution(substitutions, (left_span, ReprValue(&left)))].concat(), *right, co).await? {
                         a @ Value::Bool(_) => Ok(a),
                         right => Err(RuntimeError { span: right_span, kind: RuntimeErrorKind::InvalidTypeForShortCircuitOp(op, right.type_()) }),
                     },
                     left => Err(RuntimeError { span: left_span, kind: RuntimeErrorKind::InvalidTypeForShortCircuitOp(op, left.type_()) }),
                 },
-                ShortCircuitOp::And => match interpret_expr(state, *left, co).await? {
+                ShortCircuitOp::And => match interpret_expr(state, substitutions, *left, co).await? {
                     Value::Bool(false) => Ok(Value::Bool(false)),
-                    Value::Bool(true) => match interpret_expr(state, *right, co).await? {
+                    left @ Value::Bool(true) => match interpret_expr(state, &add_substitution(substitutions, (left_span, ReprValue(&left))), *right, co).await? {
                         a @ Value::Bool(_) => Ok(a),
                         right => Err(RuntimeError { span: right_span, kind: RuntimeErrorKind::InvalidTypeForShortCircuitOp(op, right.type_()) }),
                     },
@@ -238,8 +294,13 @@ async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(state: &mut 
             }
         }
         ExprKind::BinaryOp(left, Located(op_span, op), right) => {
-            let left = interpret_expr(state, *left, co).await?;
-            let right = interpret_expr(state, *right, co).await?;
+            let left_span = left.span;
+            let right_span = right.span;
+
+            let left = interpret_expr(state, substitutions, *left, co).await?;
+            let subs_with_left = add_substitution(substitutions, (left_span, ReprValue(&left)));
+            let right = interpret_expr(state, &subs_with_left, *right, co).await?;
+            let subs_with_right = add_substitution(&subs_with_left, (right_span, ReprValue(&right)));
 
             macro_rules! comparison {
                     ($op:tt) => {
@@ -253,7 +314,14 @@ async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(state: &mut 
                     };
                 }
 
-            co.yield_(InterpretYield { msg: format!("evaluate operation '{}'", op), primary_highlight: op_span, secondary_highlights: Vec::new(), state: state.clone() }).await;
+            co.yield_(InterpretYield {
+                msg: format!("evaluate operation '{}'", op),
+                primary_highlight: op_span,
+                secondary_highlights: Vec::new(),
+                substitutions: subs_with_right,
+                state: state.clone(),
+            })
+            .await;
             match op {
                 BinaryOp::Equal => {
                     comparison!(==)
@@ -302,8 +370,16 @@ async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(state: &mut 
             }
         }
         ExprKind::UnaryOp(Located(operator_span, operator), operand) => {
-            let operand = interpret_expr(state, *operand, co).await?;
-            co.yield_(InterpretYield { msg: format!("evaluate operation '{}'", operator), primary_highlight: operator_span, secondary_highlights: Vec::new(), state: state.clone() }).await;
+            let operand_span = operand.span;
+            let operand = interpret_expr(state, substitutions, *operand, co).await?;
+            co.yield_(InterpretYield {
+                msg: format!("evaluate operation '{}'", operator),
+                primary_highlight: operator_span,
+                secondary_highlights: Vec::new(),
+                substitutions: add_substitution(&substitutions, (operand_span, ReprValue(&operand))),
+                state: state.clone(),
+            })
+            .await;
             match operator {
                 UnaryOp::NumericNegate => match operand {
                     Value::Int(i) => Ok(Value::Int(-i)),
