@@ -1,8 +1,8 @@
-use sfml::graphics::{Font, Transformable, Shape};
+use sfml::graphics::{Font, Shape, Transformable};
 
 use crate::visualizer::{
     event, graphics, layout,
-    render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker},
+    render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker, util},
     widgets::Widget,
 };
 
@@ -42,17 +42,18 @@ impl<GetFont: Fn(&graphics::Fonts) -> &Font, Data> Widget<Data> for Label<GetFon
 impl<GetFont: Fn(&graphics::Fonts) -> &Font, Data> RenderObject<Data> for LabelRenderObject<GetFont> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         let text = graphics::Text::new(&self.text, (self.get_font)(&graphics_context.fonts), self.font_size);
-        self.size = sc.clamp_size(text.global_bounds().size());
+        let global_bounds = text.global_bounds();
+        self.size = sc.clamp_size(graphics::Vector2f::new(global_bounds.left + global_bounds.width, global_bounds.top + global_bounds.height));
     }
 
     fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, _: Option<RenderObjectId>) {
-        // TODO: deal with overflow (clipping does not work because the bounding box is not correct)
-        // util::clip(graphics_context, target, graphics::FloatRect::from_vecs(top_left, self.size), |target, top_left| {
-        let mut text = graphics::Text::new(&self.text, (self.get_font)(&graphics_context.fonts), self.font_size);
-        text.set_position(top_left);
-        text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
-        target.draw(&text);
-        // });
+        // TODO: deal with overflow better than by clipping
+        util::clip(graphics_context, target, graphics::FloatRect::from_vecs(top_left, self.size), |target, top_left| {
+            let mut text = graphics::Text::new(&self.text, (self.get_font)(&graphics_context.fonts), self.font_size);
+            text.set_position(top_left);
+            text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
+            target.draw(&text);
+        });
     }
 
     fn find_hover(&self, top_left: graphics::Vector2f, mouse: graphics::Vector2f) -> Option<RenderObjectId> {

@@ -8,7 +8,7 @@ use crate::{
         event, graphics, layout,
         render_object::{
             animated::{Animated, AnimatedValue, Lerpable},
-            RenderObject, RenderObjectId, RenderObjectIdMaker,
+            util, RenderObject, RenderObjectId, RenderObjectIdMaker,
         },
         widgets::{center::Center, expand::Expand, fixed_size::fixed_size, flex, label::Label, min_size::MinSize, Widget},
     },
@@ -187,58 +187,59 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
 impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject<Data> for LineViewRenderObject<'file, GetFont> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         let text = graphics::Text::new(self.contents, (self.get_font)(&graphics_context.fonts), self.font_size);
-        self.size = sc.clamp_size(text.global_bounds().size());
+        let global_bounds = text.global_bounds();
+        self.size = sc.clamp_size(graphics::Vector2f::new(global_bounds.left + global_bounds.width, global_bounds.top + global_bounds.height));
     }
 
     fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, _: Option<RenderObjectId>) {
-        // TODO: deal with overflow (clipping does not work because the bounding box does not include descenders)
-        // util::clip(graphics_context, target, graphics::FloatRect::from_vecs(top_left, self.size), |target, top_left| {
-        let mut text = graphics::Text::new(self.contents, (self.get_font)(&graphics_context.fonts), self.font_size);
-        text.set_position(top_left);
-        text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
+        // TODO: deal with overflow better than by clipping (scrolling?)
+        util::clip(graphics_context, target, graphics::FloatRect::from_vecs(top_left, self.size), |target, top_left| {
+            let mut text = graphics::Text::new(self.contents, (self.get_font)(&graphics_context.fonts), self.font_size);
+            text.set_position(top_left);
+            text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
 
-        for (LineHighlight { start, end, color }, shown_amount) in &self.highlights {
-            let highlight_start_index = match start {
-                HighlightStartPosition::Start => 0,
-                HighlightStartPosition::Index(i) => *i,
-            };
-            let highlight_end_index = match end {
-                HighlightEndPosition::End => self.contents.len(),
-                HighlightEndPosition::Index(i) => *i,
-            };
-
-            let (left_x_interp, width_amount) = {
-                let get_positions_from_shown_amount = |shown_amount| match shown_amount {
-                    HighlightShownAmount::CompressedToLeft => (0.0, 0.0),
-                    HighlightShownAmount::AllShown => (0.0, 1.0),
-                    HighlightShownAmount::CompressedToRight => (1.0, 0.0),
+            for (LineHighlight { start, end, color }, shown_amount) in &self.highlights {
+                let highlight_start_index = match start {
+                    HighlightStartPosition::Start => 0,
+                    HighlightStartPosition::Index(i) => *i,
                 };
-                match shown_amount.get() {
-                    AnimatedValue::Steady(sa) => get_positions_from_shown_amount(*sa),
-                    AnimatedValue::Animating { before: start_sa, after: end_sa, amount: lerp_interp_amount } => {
-                        let (start_left_x, start_width) = get_positions_from_shown_amount(*start_sa);
-                        let (end_left_x, end_width) = get_positions_from_shown_amount(*end_sa);
-                        (start_left_x.lerp(&end_left_x, lerp_interp_amount), start_width.lerp(&end_width, lerp_interp_amount))
+                let highlight_end_index = match end {
+                    HighlightEndPosition::End => self.contents.len(),
+                    HighlightEndPosition::Index(i) => *i,
+                };
+
+                let (left_x_interp, width_amount) = {
+                    let get_positions_from_shown_amount = |shown_amount| match shown_amount {
+                        HighlightShownAmount::CompressedToLeft => (0.0, 0.0),
+                        HighlightShownAmount::AllShown => (0.0, 1.0),
+                        HighlightShownAmount::CompressedToRight => (1.0, 0.0),
+                    };
+                    match shown_amount.get() {
+                        AnimatedValue::Steady(sa) => get_positions_from_shown_amount(*sa),
+                        AnimatedValue::Animating { before: start_sa, after: end_sa, amount: lerp_interp_amount } => {
+                            let (start_left_x, start_width) = get_positions_from_shown_amount(*start_sa);
+                            let (end_left_x, end_width) = get_positions_from_shown_amount(*end_sa);
+                            (start_left_x.lerp(&end_left_x, lerp_interp_amount), start_width.lerp(&end_width, lerp_interp_amount))
+                        }
                     }
-                }
-            };
+                };
 
-            let highlight_start_pos = text.find_character_pos(highlight_start_index);
-            let highlight_end_pos = text.find_character_pos(highlight_end_index);
-            let highlight_width = highlight_end_pos.x - highlight_start_pos.x;
+                let highlight_start_pos = text.find_character_pos(highlight_start_index);
+                let highlight_end_pos = text.find_character_pos(highlight_end_index);
+                let highlight_width = highlight_end_pos.x - highlight_start_pos.x;
 
-            let mut highlight_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(
-                highlight_start_pos + graphics::Vector2f::new(left_x_interp * highlight_width, 0.0),
-                graphics::Vector2f::new(highlight_width * width_amount, self.size.y),
-            ));
+                let mut highlight_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(
+                    highlight_start_pos + graphics::Vector2f::new(left_x_interp * highlight_width, 0.0),
+                    graphics::Vector2f::new(highlight_width * width_amount, self.size.y),
+                ));
 
-            highlight_rect.set_fill_color(*color);
+                highlight_rect.set_fill_color(*color);
 
-            target.draw(&highlight_rect);
-        }
+                target.draw(&highlight_rect);
+            }
 
-        target.draw(&text);
-        // });
+            target.draw(&text);
+        });
     }
 
     fn find_hover(&self, top_left: graphics::Vector2f, mouse: graphics::Vector2f) -> Option<RenderObjectId> {
