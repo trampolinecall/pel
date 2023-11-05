@@ -38,21 +38,21 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
             InterpreterViewState::NotStarted => make_message("interpreter not started".to_string()),
             InterpreterViewState::AboutToExecute(InterpretYield { msg, primary_highlight: highlight, state, secondary_highlights }) => {
                 // TODO: hashmap does not preserve order that variables are created
-                let env_view = view_env(&state.env);
+                // TODO: padding constant
 
                 Either::new_right(Either::new_right(flex! {
                     horizontal
-                    code_view: flex::ItemSettings::Flex(0.3), code_view((*highlight, Color::rgb(50, 100, 50)), secondary_highlights.clone(), Fonts::text_font, 15, Fonts::monospace_font, 15), // TODO: pick better colors
-                    program_output: flex::ItemSettings::Flex(0.3), Label::new(state.program_output.clone(), Fonts::monospace_font, 15), // TODO: scrolling, min size, fixed size?, scroll to bottom automatically
-                    env_view: flex::ItemSettings::Flex(0.2), env_view,
-                    msg: flex::ItemSettings::Flex(0.2), Label::new(format!("running\n{msg}"), Fonts::text_font, 15),
+                    code_view: flex::ItemSettings::Flex(0.3), Padding::all_around(code_view((*highlight, Color::rgb(50, 100, 50)), secondary_highlights.clone(), Fonts::text_font, 15, Fonts::monospace_font, 15), 5.0), // TODO: pick better colors
+                    program_output: flex::ItemSettings::Flex(0.3), Padding::all_around(Label::new(state.program_output.clone(), Fonts::monospace_font, 15), 5.0), // TODO: scrolling, min size, fixed size?, scroll to bottom automatically
+                    env_view: flex::ItemSettings::Flex(0.2), Padding::all_around(view_env(&state.env), 5.0),
+                    msg: flex::ItemSettings::Flex(0.2), Padding::all_around(Label::new(format!("running\n{msg}"), Fonts::text_font, 15), 5.0),
                 }))
             }
             InterpreterViewState::Finished { result: Ok(()) } => make_message("interpreter finished successfully".to_string()),
             InterpreterViewState::Finished { result: Err(err) } => Either::new_right(Either::new_left(flex! {
                 horizontal
-                code_view: flex::ItemSettings::Flex(0.3), code_view((err.span, Color::rgb(150, 0, 0)), Vec::new(), Fonts::text_font, 15, Fonts::monospace_font, 15),
-                msg: flex::ItemSettings::Flex(0.2), Label::new(format!("interpreter had error: {}", err.kind), Fonts::text_font, 15),
+                code_view: flex::ItemSettings::Flex(0.3), Padding::all_around(code_view((err.span, Color::rgb(150, 0, 0)), Vec::new(), Fonts::text_font, 15, Fonts::monospace_font, 15), 5.0),
+                msg: flex::ItemSettings::Flex(0.2), Padding::all_around(Label::new(format!("interpreter had error: {}", err.kind), Fonts::text_font, 15), 5.0),
             })),
         };
 

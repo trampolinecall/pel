@@ -31,6 +31,9 @@ impl<Data, Child: Widget<Data>> Padding<Data, Child> {
     pub(crate) fn new(child: Child, left: f32, top: f32, right: f32, bottom: f32) -> Self {
         Self { child, left, top, right, bottom, _phantom: PhantomData }
     }
+    pub(crate) fn all_around(child: Child, pad: f32) -> Self {
+        Self::new(child, pad, pad, pad, pad)
+    }
 }
 
 impl<Data, Child: Widget<Data>> Widget<Data> for Padding<Data, Child> {
