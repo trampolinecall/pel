@@ -349,7 +349,18 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject
         let global_bounds = text.global_bounds();
         let main_line_height = self.main_line_height(graphics_context);
         let shrunken_height = main_line_height * SHRINK_SCALE_FACTOR;
-        self.size = sc.clamp_size(graphics::Vector2f::new(global_bounds.left + global_bounds.width, main_line_height + shrunken_height));
+
+        let max_shrunken_section = self
+            .chunks
+            .iter()
+            .map(|(_, shrink)| match shrink.get() {
+                AnimatedValue::Steady(v) => v.is_some() as u32 as f32,
+                AnimatedValue::Animating { before, after, amount } => (before.is_some() as u32 as f32).lerp(&(after.is_some() as u32 as f32), amount),
+            })
+            .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)) // not exactly sure what to do with NaNs, but also i dont really care because they shouldn't be there hopefully
+            .unwrap_or(0.0);
+
+        self.size = sc.clamp_size(graphics::Vector2f::new(global_bounds.left + global_bounds.width, main_line_height + max_shrunken_section * shrunken_height));
     }
 
     fn draw(&self, graphics_context: &graphics::GraphicsContext, target: &mut dyn graphics::RenderTarget, top_left: graphics::Vector2f, _: Option<RenderObjectId>) {
