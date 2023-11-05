@@ -14,17 +14,6 @@ use crate::{
     },
 };
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash)]
-enum HighlightStartPosition {
-    Start,
-    Index(usize),
-}
-#[derive(Copy, Clone, Eq, PartialEq, Hash)]
-enum HighlightEndPosition {
-    End,
-    Index(usize),
-}
-
 const SHRINK_SCALE_FACTOR: f32 = 0.8; // TODO: put this in a better place
 
 pub(crate) struct LineView<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font> {
@@ -37,8 +26,8 @@ pub(crate) struct LineView<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Fo
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 struct LineHighlight {
-    start: HighlightStartPosition,
-    end: HighlightEndPosition,
+    start: usize,
+    end: usize,
     color: graphics::Color,
 }
 impl Hash for LineHighlight {
@@ -102,8 +91,8 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
                     .flat_map(|(span, color)| {
                         let highlight_span_overlaps_line_bounds = !(span.end < line_bounds.start || span.start >= line_bounds.end);
                         if highlight_span_overlaps_line_bounds {
-                            let highlight_start = if span.start < line_bounds.start { HighlightStartPosition::Start } else { HighlightStartPosition::Index(span.start - line_bounds.start) };
-                            let highlight_end = if span.end > line_bounds.end { HighlightEndPosition::End } else { HighlightEndPosition::Index(span.end - line_bounds.start) };
+                            let highlight_start = if span.start < line_bounds.start { 0 } else { span.start - line_bounds.start };
+                            let highlight_end = if span.end > line_bounds.end { line_contents.len() } else { span.end - line_bounds.start };
                             Some(LineHighlight { start: highlight_start, end: highlight_end, color: *color })
                         } else {
                             None
@@ -372,7 +361,7 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject
             text.set_fill_color(graphics::Color::WHITE); // TODO: control text color
 
             for (highlight, shown_amount) in &self.highlights {
-                draw_line_highlights(target, &text, self.contents, self.main_line_height(graphics_context), *highlight, shown_amount);
+                draw_line_highlights(target, &text, self.main_line_height(graphics_context), *highlight, shown_amount);
             }
 
             for (chunk_range, chunk_shrink) in &self.chunks {
@@ -435,20 +424,10 @@ fn draw_text_substitution(
 fn draw_line_highlights(
     target: &mut dyn graphics::RenderTarget,
     line_text: &graphics::Text,
-    line_contents: &str,
     main_line_height: f32,
-    LineHighlight { start, end, color }: LineHighlight,
+    LineHighlight { start: start_index, end: end_index, color }: LineHighlight,
     shown_amount: &Animated<HighlightShownAmount>,
 ) {
-    let highlight_start_index = match start {
-        HighlightStartPosition::Start => 0,
-        HighlightStartPosition::Index(i) => i,
-    };
-    let highlight_end_index = match end {
-        HighlightEndPosition::End => line_contents.len(),
-        HighlightEndPosition::Index(i) => i,
-    };
-
     let (left_x_interp, width_amount) = {
         let get_positions_from_shown_amount = |shown_amount| match shown_amount {
             HighlightShownAmount::CompressedToLeft => (0.0, 0.0),
@@ -465,9 +444,9 @@ fn draw_line_highlights(
         }
     };
 
-    let highlight_start_pos = line_text.find_character_pos(highlight_start_index);
+    let highlight_start_pos = line_text.find_character_pos(start_index);
     // TODO: highlight end position should really be the right edge of the last character included in the highlight, not the left edge of the first character next to the highlight
-    let highlight_end_pos = line_text.find_character_pos(highlight_end_index);
+    let highlight_end_pos = line_text.find_character_pos(end_index);
     let highlight_width = highlight_end_pos.x - highlight_start_pos.x;
 
     let mut highlight_rect = graphics::RectangleShape::from_rect(graphics::FloatRect::from_vecs(
