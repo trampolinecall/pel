@@ -62,6 +62,7 @@ impl<Data, Child: Widget<Data>> Widget<Data> for Padding<Data, Child> {
 
 impl<Data, Child: RenderObject<Data>> RenderObject<Data> for PaddingRenderObject<Data, Child> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
+        let shrunk_sc = sc.shrink(graphics::Vector2f::new(self.left.get_lerped() + self.right.get_lerped(), self.top.get_lerped() + self.bottom.get_lerped()));
         self.child.layout(graphics_context, sc);
         self.size = sc.clamp_size(self.child.size() + graphics::Vector2f::new(self.left.get_lerped() + self.right.get_lerped(), self.top.get_lerped() + self.bottom.get_lerped()));
     }

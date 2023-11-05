@@ -13,4 +13,11 @@ impl SizeConstraints {
     pub(crate) fn clamp_size(&self, size: graphics::Vector2f) -> graphics::Vector2f {
         graphics::Vector2f::new(size.x.clamp(self.min.x, self.max.x), size.y.clamp(self.min.y, self.max.y))
     }
+
+    pub(crate) fn shrink(&self, amount: graphics::Vector2f) -> SizeConstraints {
+        SizeConstraints {
+            min: graphics::Vector2f::new((self.min.x - amount.x).max(0.0), (self.min.y - amount.y).max(0.0)),
+            max: graphics::Vector2f::new((self.max.x - amount.x).max(0.0), (self.max.y - amount.y).max(0.0)),
+        }
+    }
 }
