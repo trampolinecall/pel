@@ -107,7 +107,7 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
                         if span_overlaps_line_bounds {
                             let start = if span.start < line_bounds.start { 0 } else { span.start - line_bounds.start };
                             let end = if span.end > line_bounds.end { line_contents.len() } else { span.end - line_bounds.start };
-                            Some((start..end, if span.start < line_bounds.end { Some(replacement.clone()) } else { None }))
+                            Some((start..end, if line_bounds.start <= span.start && span.start < line_bounds.end { Some(replacement.clone()) } else { None }))
                         } else {
                             None
                         }
