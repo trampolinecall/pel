@@ -73,20 +73,18 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
 ) -> impl Widget<Data> + 'file {
     let secondary_highlights: Vec<_> = secondary_highlights.into_iter().collect();
     let substitutions: Vec<_> = substitutions.into_iter().collect();
-    Expand::new(flex::homogeneous::Flex::new(
-        flex::Direction::Vertical,
-        primary_highlight
-            .0
-            .file
+    let primary_file = primary_highlight.0.file;
+    Expand::new(flex::homogeneous::Flex::new_vertical(
+        primary_file
             .lines
             .iter()
             .enumerate()
             .map(|(line_number, (line_bounds, line_contents))| {
+                let span_overlaps_line_bounds = |span: &Span| !(span.end < line_bounds.start || span.start >= line_bounds.end);
                 let highlights_on_line = std::iter::once(&primary_highlight)
                     .chain(secondary_highlights.iter())
                     .flat_map(|(span, color)| {
-                        let highlight_span_overlaps_line_bounds = !(span.end < line_bounds.start || span.start >= line_bounds.end);
-                        if highlight_span_overlaps_line_bounds {
+                        if std::ptr::eq(span.file, primary_file) && span_overlaps_line_bounds(span) {
                             let highlight_start = if span.start < line_bounds.start { 0 } else { span.start - line_bounds.start };
                             let highlight_end = if span.end > line_bounds.end { line_contents.len() } else { span.end - line_bounds.start };
                             Some(LineHighlight { start: highlight_start, end: highlight_end, color: *color })
@@ -99,8 +97,7 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
                 let substitutions_on_line = substitutions
                     .iter()
                     .flat_map(|(span, replacement)| {
-                        let span_overlaps_line_bounds = !(span.end < line_bounds.start || span.start >= line_bounds.end);
-                        if span_overlaps_line_bounds {
+                        if span_overlaps_line_bounds(span) {
                             let start = if span.start < line_bounds.start { 0 } else { span.start - line_bounds.start };
                             let end = if span.end > line_bounds.end { line_contents.len() } else { span.end - line_bounds.start };
                             Some((start..end, if line_bounds.start <= span.start && span.start < line_bounds.end { Some(replacement.clone()) } else { None }))
@@ -111,14 +108,20 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
                     .collect();
                 (
                     flex::ItemSettings::Fixed,
-                    flex! {
-                        horizontal
-                        line_number: flex::ItemSettings::Fixed, FixedSize::new(Center::new(Label::new((line_number + 1).to_string(), line_nr_font, line_nr_font_size)), graphics::Vector2f::new(20.0, 20.0)), // TODO: also don't hardcode this size, also TODO: line numbers should really be right aligned, not centered
-                        line_view: flex::ItemSettings::Flex(1.0), MinSize::new(
-                            LineView {contents:line_contents,highlights:highlights_on_line,get_font:code_font,font_size:code_font_size, substitutions: substitutions_on_line },
-                            graphics::Vector2f::new(0.0, 20.0), // TODO: don't hardcode minimum height
+                    flex!(horizontal {
+                        line_number: (
+                            flex::ItemSettings::Fixed,
+                            FixedSize::new(Center::new(Label::new((line_number + 1).to_string(), line_nr_font, line_nr_font_size)), graphics::Vector2f::new(20.0, 20.0))
+                        ), // TODO: also don't hardcode this size, also TODO: line numbers should really be right aligned, not centered
+
+                        line_view: (
+                            flex::ItemSettings::Flex(1.0),
+                            MinSize::new(
+                                LineView { contents: line_contents, highlights: highlights_on_line, get_font: code_font, font_size: code_font_size, substitutions: substitutions_on_line },
+                                graphics::Vector2f::new(0.0, 20.0), // TODO: don't hardcode minimum height
+                            )
                         ),
-                    },
+                    }),
                 )
             })
             .collect(),

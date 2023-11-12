@@ -40,20 +40,27 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
                 // TODO: padding constant
                 // TODO: adjustable font size
 
-                Either::new_right(Either::new_right(flex! {
-                    horizontal
-                    code_view: flex::ItemSettings::Flex(0.3), Padding::all_around(code_view((*primary_highlight, Color::rgb(50, 100, 50)), secondary_highlights.clone(), substitutions.clone(), Fonts::text_font, 15, Fonts::monospace_font, 15), 5.0), // TODO: pick better colors
-                    program_output: flex::ItemSettings::Flex(0.3), Padding::all_around(Label::new(state.program_output.clone(), Fonts::monospace_font, 15), 5.0), // TODO: scrolling, min size, fixed size?, scroll to bottom automatically
-                    env_view: flex::ItemSettings::Flex(0.2), Padding::all_around(view_env(&state.env), 5.0),
-                    msg: flex::ItemSettings::Flex(0.2), Padding::all_around(Label::new(format!("running\n{msg}"), Fonts::text_font, 15), 5.0),
-                }))
+                Either::new_right(Either::new_right(flex!(horizontal {
+                    code_view: (
+                        flex::ItemSettings::Flex(0.3),
+                        Padding::all_around(
+                            code_view((*primary_highlight, Color::rgb(50, 100, 50)), secondary_highlights.clone(), substitutions.clone(), Fonts::text_font, 15, Fonts::monospace_font, 15),
+                            5.0
+                        )
+                    ), // TODO: pick better colors
+                    program_output: (flex::ItemSettings::Flex(0.3), Padding::all_around(Label::new(state.program_output.clone(), Fonts::monospace_font, 15), 5.0)), // TODO: scrolling, min size, fixed size?, scroll to bottom automatically
+                    env_view: (flex::ItemSettings::Flex(0.2), Padding::all_around(view_env(&state.env), 5.0)),
+                    msg: (flex::ItemSettings::Flex(0.2), Padding::all_around(Label::new(format!("running\n{msg}"), Fonts::text_font, 15), 5.0)),
+                })))
             }
             InterpreterViewState::Finished { result: Ok(()) } => make_message("interpreter finished successfully".to_string()),
-            InterpreterViewState::Finished { result: Err(err) } => Either::new_right(Either::new_left(flex! {
-                horizontal
-                code_view: flex::ItemSettings::Flex(0.3), Padding::all_around(code_view((err.span, Color::rgb(150, 0, 0)), Vec::new(), Vec::new(), Fonts::text_font, 15, Fonts::monospace_font, 15), 5.0),
-                msg: flex::ItemSettings::Flex(0.3), Padding::all_around(Label::new(format!("interpreter had error: {}", err.kind), Fonts::text_font, 15), 5.0),
-            })),
+            InterpreterViewState::Finished { result: Err(err) } => Either::new_right(Either::new_left(flex!(horizontal {
+                code_view: (
+                    flex::ItemSettings::Flex(0.3),
+                    Padding::all_around(code_view((err.span, Color::rgb(150, 0, 0)), Vec::new(), Vec::new(), Fonts::text_font, 15, Fonts::monospace_font, 15), 5.0)
+                ),
+                msg: (flex::ItemSettings::Flex(0.3), Padding::all_around(Label::new(format!("interpreter had error: {}", err.kind), Fonts::text_font, 15), 5.0)),
+            }))),
         };
 
         RespondsToKeyboard::<Self, _, _>::new(Key::Space, |interpreter: &mut _| interpreter.step(), widget)
@@ -83,22 +90,33 @@ fn view_env<Data>(env: &interpreter::Vars) -> impl Widget<Data> {
                         // TODO: grid widget
                         flex::ItemSettings::Fixed,
                         MinSize::new(
-                            flex! {
-                                horizontal
+                            flex!(horizontal {
+                                name: (
+                                    flex::ItemSettings::Flex(0.5),
+                                    Padding::new(MinSize::new(Label::new(var_name.to_string(), Fonts::text_font, 15), graphics::Vector2f::new(50.0, 0.0)), 10.0, 5.0, 10.0, 5.0)
+                                ),
 
-                                name: flex::ItemSettings::Flex(0.5), Padding::new(MinSize::new(Label::new(var_name.to_string(), Fonts::text_font, 15), graphics::Vector2f::new(50.0, 0.0)), 10.0, 5.0, 10.0, 5.0),
-                                value: flex::ItemSettings::Flex(0.5), Padding::new(MinSize::new(
-                                    Label::new(
-                                        match &value.1 {
-                                            Some(value) => ReprValue(value).to_string(),
-                                            None => "<uninitialized>".to_string(),
-                                        },
-                                        Fonts::text_font,
-                                        15,
-                                    ),
-                                    graphics::Vector2f::new(50.0, 0.0)
-                                ), 10.0, 5.0, 10.0, 5.0),
-                            },
+                                value: (
+                                    flex::ItemSettings::Flex(0.5),
+                                    Padding::new(
+                                        MinSize::new(
+                                            Label::new(
+                                                match &value.1 {
+                                                    Some(value) => ReprValue(value).to_string(),
+                                                    None => "<uninitialized>".to_string(),
+                                                },
+                                                Fonts::text_font,
+                                                15,
+                                            ),
+                                            graphics::Vector2f::new(50.0, 0.0)
+                                        ),
+                                        10.0,
+                                        5.0,
+                                        10.0,
+                                        5.0
+                                    )
+                                ),
+                            }),
                             graphics::Vector2f::new(0.0, 25.0),
                         ),
                     )

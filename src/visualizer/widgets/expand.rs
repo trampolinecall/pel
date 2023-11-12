@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::visualizer::{widgets::Widget, dom};
+use crate::visualizer::{dom, widgets::Widget};
 
 pub(crate) struct Expand<Data, Child: Widget<Data>> {
     child: Child,

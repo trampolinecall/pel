@@ -184,9 +184,7 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
                     v_place.1 = Some(v);
                     Ok(())
                 }
-                None => {
-                    Err(RuntimeError { span: stmt.span, kind: RuntimeErrorKind::VarDoesNotExist(var) })
-                }
+                None => Err(RuntimeError { span: stmt.span, kind: RuntimeErrorKind::VarDoesNotExist(var) }),
             }
         }
 

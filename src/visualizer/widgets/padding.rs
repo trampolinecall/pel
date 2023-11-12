@@ -1,8 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::visualizer::{
-    widgets::Widget, dom
-};
+use crate::visualizer::{dom, widgets::Widget};
 
 // TODO: REMOVE this whole module?
 

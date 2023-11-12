@@ -12,7 +12,6 @@ pub(crate) mod min_size;
 pub(crate) mod padding;
 pub(crate) mod responds_to_keyboard;
 pub(crate) mod test_rect;
-pub(crate) mod vsplit;
 
 use crate::visualizer::dom::Element;
 

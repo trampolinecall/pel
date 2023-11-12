@@ -1,12 +1,12 @@
 // TODO: make a macro to just make the struct
 macro_rules! flex {
-    (horizontal $($rest:tt)*) => {
-        flex!($crate::visualizer::widgets::flex::Direction::Horizontal; $($rest)*)
+    (horizontal { $($rest:tt)* }) => {
+        flex!($crate::visualizer::widgets::flex::Direction::Horizontal { $($rest)* })
     };
-    (vertical $($rest:tt)*) => {
-        flex!($crate::visualizer::widgets::flex::Direction::Vertical; $($rest)*)
+    (vertical { $($rest:tt)* }) => {
+        flex!($crate::visualizer::widgets::flex::Direction::Vertical { $($rest)* })
     };
-    ($direction:expr; $( $name:ident : $settings:expr, $e:expr ),* $(,)?) => {
+    ($direction:path { $( $name:ident: ($settings:expr, $e:expr) ),* $(,)? }) => {
         {
             #[allow(non_camel_case_types)]
             struct Container<Data, $($name: Widget<Data>),*> {
