@@ -32,6 +32,15 @@ impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> RespondsToKeyboard<Data
 impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> Widget<Data> for RespondsToKeyboard<Data, Child, Callback> {
     fn to_vdom(self) -> vdom::Element<Data> {
         todo!()
+        /* TODO
+        let mut child = self.child.to_vdom();
+        let old_tabindex = child.props.insert("tabindex".to_string(), 0.into());
+        assert!(old_tabindex.is_none()); // TODO: figure out what should actually happen
+        child.event_listeners.push(("keyup", Box::new(|data| {
+            if
+        })));
+        child
+        */
     }
 }
 

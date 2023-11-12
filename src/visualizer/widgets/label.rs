@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::visualizer::{
     graphics::{self, Font},
     vdom,
@@ -29,7 +31,8 @@ impl<GetFont: Fn(&graphics::Fonts) -> &Font> Label<GetFont> {
 
 impl<GetFont: Fn(&graphics::Fonts) -> &Font, Data> Widget<Data> for Label<GetFont> {
     fn to_vdom(self) -> vdom::Element<Data> {
-        todo!()
+        // TODO: font, font size
+        vdom::Element { type_: vdom::ElementType::P, props: HashMap::new(), event_listeners: vec![], children: vec![vdom::ElementChild::Text(self.text)] }
     }
 }
 

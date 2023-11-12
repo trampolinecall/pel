@@ -9,11 +9,10 @@ pub(crate) enum MouseButton {
     Left,
     Right,
 }
-pub(crate) struct Clickable<Data, NormalChild: Widget<Data>, ChildOnClicked: Widget<Data>, Callback: Fn(&mut Data)> {
+pub(crate) struct Clickable<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> {
     mouse_button: MouseButton,
     on_click: Callback,
-    normal_child: NormalChild,
-    child_on_clicked: ChildOnClicked,
+    child: Child,
 
     _phantom: PhantomData<fn(&mut Data)>,
 }
@@ -33,15 +32,18 @@ pub(crate) struct ClickableRenderObject<Data, NormalChild: RenderObject<Data>, C
 }
 */
 
-impl<Data, NormalChild: Widget<Data>, ChildOnClicked: Widget<Data>, Callback: Fn(&mut Data)> Clickable<Data, NormalChild, ChildOnClicked, Callback> {
-    pub(crate) fn new(mouse_button: MouseButton, on_click: Callback, normal_child: NormalChild, child_on_clicked: ChildOnClicked) -> Self {
-        Self { mouse_button, on_click, normal_child, child_on_clicked, _phantom: PhantomData }
+impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> Clickable<Data, Child, Callback> {
+    pub(crate) fn new(mouse_button: MouseButton, on_click: Callback, normal_child: Child) -> Self {
+        Self { mouse_button, on_click, child: normal_child, _phantom: PhantomData }
     }
 }
 
-impl<Data, NormalChild: Widget<Data>, ChildOnClicked: Widget<Data>, Callback: Fn(&mut Data)> Widget<Data> for Clickable<Data, NormalChild, ChildOnClicked, Callback> {
+// TODO: is + 'static really supposed to be there?
+impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data) + 'static> Widget<Data> for Clickable<Data, Child, Callback> {
     fn to_vdom(self) -> vdom::Element<Data> {
-        todo!()
+        let mut child = self.child.to_vdom();
+        child.event_listeners.push(("click", Box::new(self.on_click)));
+        child
     }
 }
 

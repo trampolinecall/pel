@@ -51,6 +51,10 @@ impl Color {
     pub(crate) fn rgb(r: u8, g: u8, b: u8) -> Self {
         Self { r, g, b, a: 255 }
     }
+
+    pub(crate) fn to_css_color(&self) -> String {
+        format!("rgba({}, {}, {}, {})", self.r, self.g, self.b, self.a)
+    }
 }
 
 // this isnt even related to graphics!

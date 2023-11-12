@@ -2,18 +2,54 @@
 pub(crate) mod fixed_amount;
 pub(crate) mod homogeneous;
 
+// TODO: decide on a better name for this?
 pub(crate) mod _layout {
-    /* TODO: REMOVE this whole module?
     use crate::visualizer::{
-        graphics::{self, GraphicsContext},
-        layout::SizeConstraints,
-        render_object::{
-            animated::{Animated, AnimatedValue, Lerpable},
-            RenderObject,
-        },
+        vdom,
         widgets::flex::{Direction, ItemSettings},
     };
 
+    #[inline]
+    pub(crate) fn make_flexbox<Data>(direction: Direction, children: Vec<(ItemSettings, vdom::Element<Data>)>) -> vdom::Element<Data> {
+        vdom::Element {
+            type_: vdom::ElementType::Div,
+            props: std::iter::once((
+                "style".to_string(),
+                format!(
+                    "display: flex; flex-direction: {};",
+                    match direction {
+                        Direction::Horizontal => {
+                            "horizontal"
+                        }
+                        Direction::Vertical => {
+                            "vertical"
+                        }
+                    }
+                )
+                .into(),
+            ))
+            .collect(),
+            event_listeners: Vec::new(),
+            children: children
+                .into_iter()
+                .map(|(settings, mut child)| {
+                    match settings {
+                        ItemSettings::Fixed => {} // TODO: do this correctly
+                        ItemSettings::Flex(grow_proportion) => {
+                            // TODO: do this better
+                            if !child.props.contains_key("style") {
+                                child.props.insert("style".to_string(), "".into());
+                            }
+                            let style_value = child.props.get_mut("style").expect("style property should exist after being created");
+                            *style_value = (style_value.as_string().expect("style property should be a string") + &format!("flex-grow: {grow_proportion};")).into();
+                        }
+                    }
+                    vdom::ElementChild::Element(child)
+                })
+                .collect(),
+        }
+    }
+    /* TODO: REMOVE this whole module?
     #[inline]
     pub(crate) fn animated_settings(settings: Animated<ItemSettings>) -> ItemSettings {
         match settings.get() {
@@ -21,53 +57,6 @@ pub(crate) mod _layout {
             AnimatedValue::Animating { before: ItemSettings::Flex(before_flex), after: ItemSettings::Flex(after_flex), amount } => ItemSettings::Flex(before_flex.lerp(after_flex, amount)),
             AnimatedValue::Animating { before: _, after, amount: _ } => *after,
         }
-    }
-
-    #[inline]
-    pub(crate) fn first_phase_step<Data>(
-        graphics_context: &GraphicsContext,
-        sc: SizeConstraints,
-        direction: Direction,
-        total_flex_scale: &mut f32,
-        major_size_left: &mut f32,
-        item_settings: ItemSettings,
-        item: &mut impl RenderObject<Data>,
-    ) {
-        match item_settings {
-            ItemSettings::Fixed => {
-                item.layout(graphics_context, sc.with_no_min());
-                *major_size_left -= direction.take_major_component(item.size());
-            }
-            ItemSettings::Flex(scale) => {
-                *total_flex_scale += scale;
-            }
-        }
-    }
-
-    #[inline]
-    pub(crate) fn second_phase_step<Data>(
-        graphics_context: &GraphicsContext,
-        sc: SizeConstraints,
-        direction: Direction,
-        total_flex_scale: f32,
-        major_size_left: f32,
-        item_settings: ItemSettings,
-        item: &mut impl RenderObject<Data>,
-    ) {
-        if let ItemSettings::Flex(scale) = item_settings {
-            let child_sc =
-                SizeConstraints { min: graphics::Vector2f::new(0.0, 0.0), max: direction.make_vector_in_direction(scale / total_flex_scale * major_size_left, direction.take_minor_component(sc.max)) };
-            item.layout(graphics_context, child_sc);
-        }
-    }
-
-    #[inline]
-    pub(crate) fn third_phase_step<Data>(direction: Direction, major_offset: &mut f32, max_minor_size: &mut f32, item: &impl RenderObject<Data>) -> graphics::Vector2f {
-        let offset = direction.make_vector_in_direction(*major_offset, 0.0);
-        *major_offset += direction.take_major_component(item.size());
-        let item_minor_size = direction.take_minor_component(item.size());
-        *max_minor_size = if item_minor_size > *max_minor_size { item_minor_size } else { *max_minor_size };
-        offset
     }
     */
 }

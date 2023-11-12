@@ -25,7 +25,10 @@ impl<Data, Left: Widget<Data>, Right: Widget<Data>> Either<Data, Left, Right> {
 
 impl<Data, Left: Widget<Data>, Right: Widget<Data>> Widget<Data> for Either<Data, Left, Right> {
     fn to_vdom(self) -> vdom::Element<Data> {
-        todo!()
+        match self {
+            Either::Left(l) => l.to_vdom(),
+            Either::Right(r, _) => r.to_vdom(),
+        }
     }
 }
 /* TODO: REMOVE

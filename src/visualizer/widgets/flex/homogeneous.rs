@@ -40,7 +40,7 @@ impl<Data, Child: Widget<Data>> Flex<Data, Child> {
 
 impl<Data, Child: Widget<Data>> Widget<Data> for Flex<Data, Child> {
     fn to_vdom(self) -> vdom::Element<Data> {
-        todo!()
+        _layout::make_flexbox(self.direction, self.children.into_iter().map(|(settings, child)| (settings, child.to_vdom())).collect())
     }
 }
 /* TODO: REMOVE

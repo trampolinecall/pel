@@ -56,7 +56,8 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
             })),
         };
 
-        RespondsToKeyboard::<Self, _, _>::new(Key::Space, |interpreter: &mut _| interpreter.step(), widget)
+        // RespondsToKeyboard::<Self, _, _>::new(Key::Space, |interpreter: &mut _| interpreter.step(), widget)
+        widget
     }
 
     fn step(&mut self) {

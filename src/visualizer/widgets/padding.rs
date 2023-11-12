@@ -4,6 +4,8 @@ use crate::visualizer::{
     widgets::Widget, vdom
 };
 
+// TODO: REMOVE this whole module?
+
 pub(crate) struct Padding<Data, Child: Widget<Data>> {
     child: Child,
     left: f32,
