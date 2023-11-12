@@ -1,4 +1,4 @@
-use crate::visualizer::{graphics, vdom, widgets::Widget};
+use crate::visualizer::{graphics, dom, widgets::Widget};
 
 pub(crate) struct TestRect {
     color: graphics::Color,
@@ -21,10 +21,10 @@ impl TestRect {
 }
 
 impl<Data> Widget<Data> for TestRect {
-    fn to_vdom(self) -> vdom::Element<Data> {
+    fn to_vdom(self) -> dom::Element<Data> {
         // TODO: sizes in other units
-        vdom::Element {
-            type_: vdom::ElementType::Div,
+        dom::Element {
+            type_: dom::ElementType::Div,
             props: vec![("style".to_string(), format!("width: {}px; height: {}px; color: {}", self.size.x, self.size.y, self.color.to_css_color()).into())].into_iter().collect(),
             event_listeners: Vec::new(),
             children: Vec::new(),

@@ -1,7 +1,7 @@
 // TODO: this should probably be removed when i figure out a better event dispatch system
 use std::marker::PhantomData;
 
-use crate::visualizer::{graphics::Key, vdom, widgets::Widget};
+use crate::visualizer::{graphics::Key, dom, widgets::Widget};
 
 pub(crate) struct RespondsToKeyboard<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> {
     key: Key,
@@ -30,7 +30,7 @@ impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> RespondsToKeyboard<Data
 }
 
 impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> Widget<Data> for RespondsToKeyboard<Data, Child, Callback> {
-    fn to_vdom(self) -> vdom::Element<Data> {
+    fn to_vdom(self) -> dom::Element<Data> {
         todo!()
         /* TODO
         let mut child = self.child.to_vdom();

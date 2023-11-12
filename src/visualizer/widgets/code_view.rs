@@ -3,7 +3,7 @@ use std::{hash::Hash, ops::Range};
 use crate::{
     source::Span,
     visualizer::{
-        graphics, vdom,
+        graphics, dom,
         widgets::{center::Center, expand::Expand, fixed_size::fixed_size, flex, label::Label, min_size::MinSize, Widget},
     },
 };
@@ -126,7 +126,7 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
 }
 
 impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data> for LineView<'file, GetFont> {
-    fn to_vdom(self) -> vdom::Element<Data> {
+    fn to_vdom(self) -> dom::Element<Data> {
         todo!()
     }
 }

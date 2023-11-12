@@ -5,14 +5,14 @@ pub(crate) mod homogeneous;
 // TODO: decide on a better name for this?
 pub(crate) mod _layout {
     use crate::visualizer::{
-        vdom,
+        dom,
         widgets::flex::{Direction, ItemSettings},
     };
 
     #[inline]
-    pub(crate) fn make_flexbox<Data>(direction: Direction, children: Vec<(ItemSettings, vdom::Element<Data>)>) -> vdom::Element<Data> {
-        vdom::Element {
-            type_: vdom::ElementType::Div,
+    pub(crate) fn make_flexbox<Data>(direction: Direction, children: Vec<(ItemSettings, dom::Element<Data>)>) -> dom::Element<Data> {
+        dom::Element {
+            type_: dom::ElementType::Div,
             props: std::iter::once((
                 "style".to_string(),
                 format!(
@@ -44,7 +44,7 @@ pub(crate) mod _layout {
                             *style_value = (style_value.as_string().expect("style property should be a string") + &format!("flex-grow: {grow_proportion};")).into();
                         }
                     }
-                    vdom::ElementChild::Element(child)
+                    dom::ElementChild::Element(child)
                 })
                 .collect(),
         }

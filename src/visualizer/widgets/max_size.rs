@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 // TODO: REMOVE whole module?
 
-use crate::visualizer::{graphics, vdom, widgets::Widget};
+use crate::visualizer::{graphics, dom, widgets::Widget};
 
 pub(crate) struct MaxSize<Data, Child: Widget<Data>> {
     child: Child,
@@ -27,7 +27,7 @@ impl<Data, Child: Widget<Data>> MaxSize<Data, Child> {
 }
 
 impl<Data, Child: Widget<Data>> Widget<Data> for MaxSize<Data, Child> {
-    fn to_vdom(self) -> vdom::Element<Data> {
+    fn to_vdom(self) -> dom::Element<Data> {
         todo!()
     }
 }

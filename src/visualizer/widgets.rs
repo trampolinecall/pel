@@ -14,7 +14,7 @@ pub(crate) mod responds_to_keyboard;
 pub(crate) mod test_rect;
 pub(crate) mod vsplit;
 
-use crate::visualizer::vdom::Element;
+use crate::visualizer::dom::Element;
 
 pub(crate) trait Widget<Data: ?Sized> {
     fn to_vdom(self) -> Element<Data>;

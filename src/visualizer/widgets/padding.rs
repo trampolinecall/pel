@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::visualizer::{
-    widgets::Widget, vdom
+    widgets::Widget, dom
 };
 
 // TODO: REMOVE this whole module?
@@ -39,7 +39,7 @@ impl<Data, Child: Widget<Data>> Padding<Data, Child> {
 }
 
 impl<Data, Child: Widget<Data>> Widget<Data> for Padding<Data, Child> {
-    fn to_vdom(self) -> vdom::Element<Data> {
+    fn to_vdom(self) -> dom::Element<Data> {
         todo!()
     }
 }

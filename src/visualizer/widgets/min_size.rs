@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 // TODO: REMOVE this whole widget?
 
 use crate::visualizer::{
-    widgets::Widget, vdom, graphics
+    widgets::Widget, dom, graphics
 };
 
 pub(crate) struct MinSize<Data, Child: Widget<Data>> {
@@ -29,7 +29,7 @@ impl<Data, Child: Widget<Data>> MinSize<Data, Child> {
 }
 
 impl<Data, Child: Widget<Data>> Widget<Data> for MinSize<Data, Child> {
-    fn to_vdom(self) -> vdom::Element<Data> {
+    fn to_vdom(self) -> dom::Element<Data> {
         todo!()
     }
 }

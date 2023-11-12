@@ -29,7 +29,7 @@ macro_rules! flex {
 
             #[allow(non_camel_case_types)]
             impl<Data, $($name: Widget<Data>),*> Widget<Data> for Container<Data, $($name),*> {
-                fn to_vdom(self) -> $crate::visualizer::vdom::Element<Data> {
+                fn to_vdom(self) -> $crate::visualizer::dom::Element<Data> {
                     $crate::visualizer::widgets::flex::_layout::make_flexbox($direction, vec![$((self.$name.0, self.$name.1.to_vdom())),*])
                 }
             }

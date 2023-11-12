@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::visualizer::{vdom, widgets::Widget};
+use crate::visualizer::{dom, widgets::Widget};
 
 pub(crate) struct VSplit<Data, Left: Widget<Data>, Right: Widget<Data>> {
     left: Left,
@@ -28,7 +28,7 @@ impl<Data, Left: Widget<Data>, Right: Widget<Data>> VSplit<Data, Left, Right> {
 }
 
 impl<Data, Left: Widget<Data>, Right: Widget<Data>> Widget<Data> for VSplit<Data, Left, Right> {
-    fn to_vdom(self) -> vdom::Element<Data> {
+    fn to_vdom(self) -> dom::Element<Data> {
         todo!()
     }
 }

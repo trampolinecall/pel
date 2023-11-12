@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::visualizer::{vdom, widgets::Widget};
+use crate::visualizer::{dom, widgets::Widget};
 
 pub(crate) enum Either<Data, Left: Widget<Data>, Right: Widget<Data>> {
     Left(Left),
@@ -24,7 +24,7 @@ impl<Data, Left: Widget<Data>, Right: Widget<Data>> Either<Data, Left, Right> {
 }
 
 impl<Data, Left: Widget<Data>, Right: Widget<Data>> Widget<Data> for Either<Data, Left, Right> {
-    fn to_vdom(self) -> vdom::Element<Data> {
+    fn to_vdom(self) -> dom::Element<Data> {
         match self {
             Either::Left(l) => l.to_vdom(),
             Either::Right(r, _) => r.to_vdom(),

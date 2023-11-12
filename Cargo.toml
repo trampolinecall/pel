@@ -12,7 +12,7 @@ line-span = "0.1.5"
 num-bigint = "0.4.4"
 console_error_panic_hook = "0.1.7"
 wasm-bindgen = "0.2"
-web-sys = {version = "0.3.65", features = ["console", "Window", "Document", "Element"]}
+web-sys = {version = "0.3.65", features = ["console", "Window", "Document", "Element", "Text", "Node", "NodeList"]}
 
 [lib]
 crate-type = ["cdylib"]
