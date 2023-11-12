@@ -1,9 +1,9 @@
-use std::{hash::Hash, ops::Range};
+use std::{collections::HashMap, hash::Hash, ops::Range};
 
 use crate::{
     source::Span,
     visualizer::{
-        graphics, dom,
+        dom, graphics,
         widgets::{center::Center, expand::Expand, fixed_size::fixed_size, flex, label::Label, min_size::MinSize, Widget},
     },
 };
@@ -127,7 +127,10 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
 
 impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data> for LineView<'file, GetFont> {
     fn to_vdom(self) -> dom::Element<Data> {
-        todo!()
+        // TODO: showing highlights
+        // TODO: showing substitutions
+        // TODO: adjustable font and size
+        dom::Element { type_: dom::ElementType::P, props: HashMap::new(), event_listeners: Vec::new(), children: vec![dom::ElementChild::Text(self.contents.to_string())] }
     }
 }
 /* TODO: REMOVE

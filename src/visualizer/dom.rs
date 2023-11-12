@@ -60,7 +60,7 @@ impl<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) ->
     }
     pub(crate) fn update(&mut self, dom_refcell: &Rc<RefCell<ActualDom<Data, DataAsWidget, ToWidget>>>, data: &Rc<RefCell<Data>>, document: &web_sys::Document, mut new_vdom: Element<Data>) {
         self.closures.clear();
-        update_dom(&mut self.closures, dom_refcell, data, self.to_widget, document, &self.dom, &self.vdom, &mut new_vdom);
+        self.dom = update_dom(&mut self.closures, dom_refcell, data, self.to_widget, document, &self.dom, &self.vdom, &mut new_vdom);
         self.vdom = new_vdom;
     }
 }
@@ -148,10 +148,12 @@ fn update_dom<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(
     dom: &web_sys::Element,
     old_vdom: &Element<Data>,
     new_vdom: &mut Element<Data>,
-) {
+) -> web_sys::Element {
     if old_vdom.type_ != new_vdom.type_ {
         // TODO: handle error properly
-        dom.replace_with_with_node_1(&make_dom(closures, dom_refcell, data, to_widget, document, new_vdom)).unwrap();
+        let made = make_dom(closures, dom_refcell, data, to_widget, document, new_vdom);
+        dom.replace_with_with_node_1(&made).unwrap();
+        made
     } else {
         // update properties
         // remove old properties
@@ -201,6 +203,7 @@ fn update_dom<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(
         parent_node.replace_child(&clone, dom).unwrap(); // TODO: handle error properly
         add_event_listeners(closures, dom_refcell, data, to_widget, document, &clone, std::mem::take(&mut new_vdom.event_listeners));
         // also empty the new_vdom's event listeners; for an explanation of why this is fine, see the "empty the vdom's event listeners" comment above
+        clone.dyn_into().unwrap()
     }
 }
 
@@ -220,7 +223,8 @@ fn add_event_listeners<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWi
             let document = document.clone();
             move |event| {
                 listener(event, &mut data.borrow_mut());
-                dom_refcell.borrow_mut().update(&dom_refcell, &data, &document, to_widget(&data.borrow()).to_vdom());
+                let new_vdom = to_widget(&data.borrow()).to_vdom();
+                dom_refcell.borrow_mut().update(&dom_refcell, &data, &document, new_vdom);
             }
         });
         node.add_event_listener_with_callback(event, closure.as_ref().unchecked_ref()).unwrap(); // TODO: handle error correctly

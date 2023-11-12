@@ -40,7 +40,7 @@ impl<Data, Child: Widget<Data>> Padding<Data, Child> {
 
 impl<Data, Child: Widget<Data>> Widget<Data> for Padding<Data, Child> {
     fn to_vdom(self) -> dom::Element<Data> {
-        todo!()
+        self.child.to_vdom() // TODO: figure out if this widget is even necessary
     }
 }
 

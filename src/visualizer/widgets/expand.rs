@@ -24,7 +24,7 @@ impl<Data, Child: Widget<Data>> Expand<Data, Child> {
 
 impl<Data, Child: Widget<Data>> Widget<Data> for Expand<Data, Child> {
     fn to_vdom(self) -> dom::Element<Data> {
-        todo!()
+        self.child.to_vdom() // TODO: decide if this widget is even necessary
     }
 }
 
