@@ -84,8 +84,7 @@ while iter < 100 {
     let syntax_options =
         interpreter::parser::SyntaxOptions { assign_type: interpreter::parser::AssignStatementType::Keyword, variable_decl_type: interpreter::parser::VariableDeclarationType::Keyword };
     let stmts = interpreter::parser::parse_statements(&FILE, syntax_options)?;
-
-    let interpreter = interpreter::interpreter::new_interpreter(stmts);
+    let interpreter = { interpreter::interpreter::new_interpreter(stmts) };
     visualizer::run(interpreter, interpreter::interpreter::InterpreterViewer::view);
 
     Ok(())
