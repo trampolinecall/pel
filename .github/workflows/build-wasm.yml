@@ -30,9 +30,7 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Install Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-          rustup update
+        uses: actions-rs/toolchain@v1.0.6
       - name: Install 'wasm-pack'
         run: cargo install wasm-pack
       - name: Build Wasm
