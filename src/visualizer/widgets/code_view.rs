@@ -4,7 +4,7 @@ use crate::{
     source::Span,
     visualizer::{
         dom, graphics,
-        widgets::{center::Center, expand::Expand, fixed_size::fixed_size, flex, label::Label, min_size::MinSize, Widget},
+        widgets::{center::Center, expand::Expand, fixed_size::FixedSize, flex, label::Label, min_size::MinSize, Widget},
     },
 };
 
@@ -113,7 +113,7 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
                     flex::ItemSettings::Fixed,
                     flex! {
                         horizontal
-                        line_number: flex::ItemSettings::Fixed, fixed_size(Center::new(Label::new((line_number + 1).to_string(), line_nr_font, line_nr_font_size)), graphics::Vector2f::new(20.0, 20.0)), // TODO: also don't hardcode this size, also TODO: line numbers should really be right aligned, not centered
+                        line_number: flex::ItemSettings::Fixed, FixedSize::new(Center::new(Label::new((line_number + 1).to_string(), line_nr_font, line_nr_font_size)), graphics::Vector2f::new(20.0, 20.0)), // TODO: also don't hardcode this size, also TODO: line numbers should really be right aligned, not centered
                         line_view: flex::ItemSettings::Flex(1.0), MinSize::new(
                             LineView {contents:line_contents,highlights:highlights_on_line,get_font:code_font,font_size:code_font_size, substitutions: substitutions_on_line },
                             graphics::Vector2f::new(0.0, 20.0), // TODO: don't hardcode minimum height
@@ -130,7 +130,22 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
         // TODO: showing highlights
         // TODO: showing substitutions
         // TODO: adjustable font and size
-        dom::Element { type_: dom::ElementType::P, props: HashMap::new(), event_listeners: Vec::new(), children: vec![dom::ElementChild::Text(self.contents.to_string())] }
+        dom::Element {
+            type_: dom::ElementType::P,
+            props: HashMap::new(),
+            event_listeners: Vec::new(),
+            children: vec![dom::ElementChild::Element(dom::Element {
+                type_: dom::ElementType::Code,
+                props: HashMap::new(),
+                event_listeners: Vec::new(),
+                children: vec![dom::ElementChild::Element(dom::Element {
+                    type_: dom::ElementType::Pre,
+                    props: HashMap::new(),
+                    event_listeners: Vec::new(),
+                    children: vec![dom::ElementChild::Text(self.contents.to_string())],
+                })],
+            })],
+        }
     }
 }
 /* TODO: REMOVE

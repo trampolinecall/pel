@@ -24,6 +24,8 @@ pub(crate) struct Element<Data: ?Sized> {
 pub(crate) enum ElementType {
     Div,
     P,
+    Pre,
+    Code,
 }
 pub(crate) enum ElementChild<Data: ?Sized> {
     Element(Element<Data>),
@@ -35,6 +37,8 @@ impl ElementType {
         match self {
             ElementType::Div => "div",
             ElementType::P => "p",
+            ElementType::Pre => "pre",
+            ElementType::Code => "code",
         }
     }
 }

@@ -19,10 +19,10 @@ pub(crate) mod _layout {
                     "display: flex; flex-direction: {};",
                     match direction {
                         Direction::Horizontal => {
-                            "horizontal"
+                            "row"
                         }
                         Direction::Vertical => {
-                            "vertical"
+                            "column"
                         }
                     }
                 )
@@ -33,17 +33,15 @@ pub(crate) mod _layout {
             children: children
                 .into_iter()
                 .map(|(settings, mut child)| {
-                    match settings {
-                        ItemSettings::Fixed => {} // TODO: do this correctly
-                        ItemSettings::Flex(grow_proportion) => {
-                            // TODO: do this better
-                            if !child.props.contains_key("style") {
-                                child.props.insert("style".to_string(), "".into());
-                            }
-                            let style_value = child.props.get_mut("style").expect("style property should exist after being created");
-                            *style_value = (style_value.as_string().expect("style property should be a string") + &format!("flex-grow: {grow_proportion};")).into();
-                        }
+                    if !child.props.contains_key("style") {
+                        child.props.insert("style".to_string(), "".into());
                     }
+                    let style_value = child.props.get_mut("style").expect("style property should exist after being created");
+                    let flex_proportion = match settings {
+                        ItemSettings::Fixed => 0.0,                             // TODO: is this correct?
+                        ItemSettings::Flex(grow_proportion) => grow_proportion, // TODO: do this better
+                    };
+                    *style_value = (style_value.as_string().expect("style property should be a string") + &format!("flex-grow: {flex_proportion};")).into();
                     dom::ElementChild::Element(child)
                 })
                 .collect(),
