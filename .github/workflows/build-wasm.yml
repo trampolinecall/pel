@@ -36,7 +36,7 @@ jobs:
           toolchain: stable
       - name: Install 'wasm-pack'
         run: cargo install wasm-pack
-      - name: Build Wasm
+      - name: Build code
         run: wasm-pack build --target web
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
