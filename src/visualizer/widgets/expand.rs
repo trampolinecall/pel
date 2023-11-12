@@ -1,10 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::visualizer::{
-    event, graphics, layout,
-    render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker},
-    widgets::Widget,
-};
+use crate::visualizer::{widgets::Widget, vdom};
 
 pub(crate) struct Expand<Data, Child: Widget<Data>> {
     child: Child,
@@ -12,11 +8,13 @@ pub(crate) struct Expand<Data, Child: Widget<Data>> {
     _phantom: PhantomData<fn(&mut Data)>,
 }
 
+/* TODO: REMOVE
 pub(crate) struct ExpandRenderObject<Data, Child: RenderObject<Data>> {
     child: Child,
 
     _phantom: PhantomData<fn(&mut Data)>,
 }
+*/
 
 impl<Data, Child: Widget<Data>> Expand<Data, Child> {
     pub(crate) fn new(child: Child) -> Self {
@@ -25,17 +23,12 @@ impl<Data, Child: Widget<Data>> Expand<Data, Child> {
 }
 
 impl<Data, Child: Widget<Data>> Widget<Data> for Expand<Data, Child> {
-    type Result = ExpandRenderObject<Data, <Child as Widget<Data>>::Result>;
-
-    fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        ExpandRenderObject { child: self.child.to_render_object(id_maker), _phantom: PhantomData }
-    }
-
-    fn update_render_object(self, render_object: &mut Self::Result, id_maker: &mut RenderObjectIdMaker) {
-        self.child.update_render_object(&mut render_object.child, id_maker);
+    fn to_vdom(self) -> vdom::Element<Data> {
+        todo!()
     }
 }
 
+/* TODO: REMOVE
 impl<Data, Child: RenderObject<Data>> RenderObject<Data> for ExpandRenderObject<Data, Child> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         self.child.layout(graphics_context, layout::SizeConstraints { min: sc.max, max: sc.max });
@@ -60,3 +53,4 @@ impl<Data, Child: RenderObject<Data>> RenderObject<Data> for ExpandRenderObject<
     fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::TargetedEvent) {}
     fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::GeneralEvent) {}
 }
+*/

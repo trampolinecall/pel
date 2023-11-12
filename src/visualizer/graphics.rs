@@ -1,50 +1,29 @@
+// TODO: REMOVE this module (these are temporary replacements for the sfml structs while i figure out how everything is supposed to work)
 // graphics utilities
 
-#[allow(unused_imports)]
-pub(crate) use sfml::{
-    graphics::{CircleShape, Color, FloatRect, Font, Rect, RectangleShape, RenderTarget, RenderTexture, RenderWindow, Sprite, Text, Transformable},
-    system::{Vector2, Vector2f, Vector2i, Vector2u},
-    SfBox,
-};
-
-pub(crate) trait RectCenter<T> {
-    fn center(&self) -> Vector2<T>;
-}
-impl<T: std::ops::Div + std::ops::Add<<T as std::ops::Div>::Output, Output = T> + From<i8> + Copy> RectCenter<T> for Rect<T> {
-    fn center(&self) -> Vector2<T> {
-        Vector2::new(self.left + self.width / 2.into(), self.top + self.height / 2.into())
-    }
-}
-pub(crate) trait CenterText {
-    fn center(&mut self);
-    fn center_horizontally(&mut self);
-    fn center_vertically(&mut self);
-}
-impl CenterText for Text<'_> {
-    fn center(&mut self) {
-        let bounds = self.local_bounds();
-        self.set_origin((bounds.width / 2.0, bounds.height / 2.0));
-    }
-
-    fn center_horizontally(&mut self) {
-        let bounds = self.local_bounds();
-        self.set_origin((bounds.width / 2.0, self.origin().y));
-    }
-
-    fn center_vertically(&mut self) {
-        let boudns = self.local_bounds();
-        self.set_origin((self.origin().x, boudns.height / 2.0));
-    }
-}
-
 pub(crate) struct GraphicsContext {
-    pub(crate) default_render_context_settings: sfml::window::ContextSettings,
     pub(crate) fonts: Fonts,
 }
 
+#[derive(Copy, Clone, PartialEq)]
+pub(crate) struct Vector2f {
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+}
+
+impl Vector2f {
+    pub(crate) fn new(x: f32, y: f32) -> Self {
+        Self { x, y }
+    }
+}
+
 pub(crate) struct Fonts {
-    pub(crate) text_font: SfBox<Font>,
-    pub(crate) monospace_font: SfBox<Font>,
+    pub(crate) text_font: Font,
+    pub(crate) monospace_font: Font,
+}
+pub(crate) enum Font {
+    Text,
+    Monospace,
 }
 
 impl Fonts {
@@ -55,4 +34,27 @@ impl Fonts {
     pub(crate) fn monospace_font(&self) -> &Font {
         &self.monospace_font
     }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub(crate) struct Color {
+    pub(crate) r: u8,
+    pub(crate) g: u8,
+    pub(crate) b: u8,
+    pub(crate) a: u8,
+}
+
+impl Color {
+    pub(crate) fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
+        Self { r, g, b, a }
+    }
+    pub(crate) fn rgb(r: u8, g: u8, b: u8) -> Self {
+        Self { r, g, b, a: 255 }
+    }
+}
+
+// this isnt even related to graphics!
+// TODO: REMOVE this too
+pub(crate) enum Key {
+    Space,
 }

@@ -1,9 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::visualizer::{
-    event::{GeneralEvent, TargetedEvent},
-    graphics, layout,
-    render_object::{animated::Animated, RenderObject, RenderObjectId, RenderObjectIdMaker},
+    vdom,
     widgets::{
         flex::{Direction, ItemSettings, _layout},
         Widget,
@@ -16,6 +14,7 @@ pub(crate) struct Flex<Data, Child: Widget<Data>> {
 
     _phantom: PhantomData<fn(&mut Data)>,
 }
+/* TODO: REMOVE
 pub(crate) struct FlexRenderObject<Data, Child: RenderObject<Data>> {
     direction: Direction,
     children: Vec<(Animated<ItemSettings>, graphics::Vector2f, Child)>,
@@ -25,6 +24,7 @@ pub(crate) struct FlexRenderObject<Data, Child: RenderObject<Data>> {
     _phantom: PhantomData<fn(&mut Data)>,
     _private: (),
 }
+*/
 
 impl<Data, Child: Widget<Data>> Flex<Data, Child> {
     pub(crate) fn new(direction: Direction, children: Vec<(ItemSettings, Child)>) -> Self {
@@ -39,39 +39,11 @@ impl<Data, Child: Widget<Data>> Flex<Data, Child> {
 }
 
 impl<Data, Child: Widget<Data>> Widget<Data> for Flex<Data, Child> {
-    type Result = FlexRenderObject<Data, <Child as Widget<Data>>::Result>;
-
-    fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        FlexRenderObject {
-            direction: self.direction,
-            children: self.children.into_iter().map(|(settings, child)| (Animated::new(settings), graphics::Vector2f::new(0.0, 0.0), child.to_render_object(id_maker))).collect(),
-            own_size: graphics::Vector2f::new(0.0, 0.0),
-            _phantom: PhantomData,
-            _private: (),
-        }
-    }
-
-    fn update_render_object(self, render_object: &mut Self::Result, id_maker: &mut RenderObjectIdMaker) {
-        let ro_children = std::mem::take(&mut render_object.children);
-        let ro_children_infinite = ro_children.into_iter().map(Some).chain(std::iter::repeat_with(|| None));
-
-        let new_ro_children = self
-            .children
-            .into_iter()
-            .zip(ro_children_infinite)
-            .map(|((settings, widget), ro)| match ro {
-                Some((mut old_settings, offset, mut ro)) => {
-                    widget.update_render_object(&mut ro, id_maker);
-                    old_settings.set(settings);
-                    (old_settings, offset, ro)
-                }
-                None => (Animated::new(settings), graphics::Vector2f::new(0.0, 0.0), widget.to_render_object(id_maker)),
-            })
-            .collect();
-
-        render_object.children = new_ro_children;
+    fn to_vdom(self) -> vdom::Element<Data> {
+        todo!()
     }
 }
+/* TODO: REMOVE
 impl<Data, Child: RenderObject<Data>> RenderObject<Data> for FlexRenderObject<Data, Child> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         // lay out fixed elements and count up total flex scaling factors
@@ -123,3 +95,4 @@ impl<Data, Child: RenderObject<Data>> RenderObject<Data> for FlexRenderObject<Da
     fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: TargetedEvent) {}
     fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: GeneralEvent) {}
 }
+*/

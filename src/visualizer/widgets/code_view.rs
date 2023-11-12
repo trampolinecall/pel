@@ -1,15 +1,9 @@
-use std::{collections::HashMap, hash::Hash, ops::Range};
-
-use sfml::graphics::{Shape, Transformable};
+use std::{hash::Hash, ops::Range};
 
 use crate::{
     source::Span,
     visualizer::{
-        event, graphics, layout,
-        render_object::{
-            animated::{Animated, AnimatedValue, Lerpable},
-            util, RenderObject, RenderObjectId, RenderObjectIdMaker,
-        },
+        graphics, vdom,
         widgets::{center::Center, expand::Expand, fixed_size::fixed_size, flex, label::Label, min_size::MinSize, Widget},
     },
 };
@@ -51,6 +45,7 @@ struct ChunkShrink {
     start_index: usize,
     end_index: usize,
 }
+/* TODO: REMOVE
 pub(crate) struct LineViewRenderObject<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font> {
     id: RenderObjectId,
     contents: &'file str,
@@ -62,6 +57,7 @@ pub(crate) struct LineViewRenderObject<'file, GetFont: Fn(&graphics::Fonts) -> &
     font_size: u32,
     _private: (),
 }
+*/
 
 // TODO: messages
 // TODO: scrolling
@@ -129,6 +125,12 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
     ))
 }
 
+impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data> for LineView<'file, GetFont> {
+    fn to_vdom(self) -> vdom::Element<Data> {
+        todo!()
+    }
+}
+/* TODO: REMOVE
 impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data> for LineView<'file, GetFont> {
     type Result = LineViewRenderObject<'file, GetFont>;
 
@@ -278,7 +280,9 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data>
         }
     }
 }
+*/
 
+/* TODO: REMOVE?
 fn construct_chunks(contents: &str, substitutions: &[(Range<usize>, Option<String>)]) -> Vec<(Range<usize>, Animated<Option<ChunkShrink>>)> {
     let char_chunks = contents.char_indices().map(|(ind, _)| {
         (ind, substitutions.iter().find(|(subst_range, _)| subst_range.contains(&ind)).map(|(subst_range, _)| ChunkShrink { start_index: subst_range.start, end_index: subst_range.end }))
@@ -323,7 +327,9 @@ fn construct_highlights(highlights: Vec<LineHighlight>) -> HashMap<LineHighlight
         })
         .collect()
 }
+*/
 
+/* TODO: REMOVE
 impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font> LineViewRenderObject<'file, GetFont> {
     fn main_line_height(&self, graphics_context: &graphics::GraphicsContext) -> f32 {
         let text = graphics::Text::new(self.contents, (self.get_font)(&graphics_context.fonts), self.font_size);
@@ -332,6 +338,8 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font> LineViewRenderObje
         15.0_f32.max(global_bounds.top + global_bounds.height)
     }
 }
+*/
+/* TODO: REMOVE
 impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject<Data> for LineViewRenderObject<'file, GetFont> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         let text = graphics::Text::new(self.contents, (self.get_font)(&graphics_context.fonts), self.font_size);
@@ -395,7 +403,9 @@ impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> RenderObject
     fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::TargetedEvent) {}
     fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::GeneralEvent) {}
 }
+*/
 
+/* TODO: REMOVE
 fn draw_text_substitution(
     target: &mut dyn graphics::RenderTarget,
     line_text: &graphics::Text<'_>,
@@ -420,7 +430,9 @@ fn draw_text_substitution(
     text.set_fill_color(graphics::Color::rgba(255, 255, 255, alpha)); // TODO: control color
     target.draw(&text);
 }
+*/
 
+/* TODO: REMOVE
 fn draw_line_highlights(
     target: &mut dyn graphics::RenderTarget,
     line_text: &graphics::Text,
@@ -458,7 +470,9 @@ fn draw_line_highlights(
 
     target.draw(&highlight_rect);
 }
+*/
 
+/* TODO: REMOVE
 fn draw_text_chunk(
     target: &mut dyn graphics::RenderTarget,
     line_text: &graphics::Text,
@@ -500,3 +514,4 @@ fn draw_text_chunk(
 
     target.draw(&chunk_text);
 }
+*/

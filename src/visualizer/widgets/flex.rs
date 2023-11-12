@@ -1,10 +1,9 @@
-use crate::visualizer::graphics;
-
 #[macro_use]
 pub(crate) mod fixed_amount;
 pub(crate) mod homogeneous;
 
 pub(crate) mod _layout {
+    /* TODO: REMOVE this whole module?
     use crate::visualizer::{
         graphics::{self, GraphicsContext},
         layout::SizeConstraints,
@@ -70,6 +69,7 @@ pub(crate) mod _layout {
         *max_minor_size = if item_minor_size > *max_minor_size { item_minor_size } else { *max_minor_size };
         offset
     }
+    */
 }
 
 #[derive(Copy, Clone, PartialEq)]
@@ -84,6 +84,7 @@ pub(crate) enum Direction {
     Vertical,
 }
 
+/* TODO: REMOVE?
 impl Direction {
     pub(crate) fn make_vector_in_direction<T>(&self, major_component: T, minor_component: T) -> graphics::Vector2<T> {
         match self {
@@ -106,3 +107,4 @@ impl Direction {
         }
     }
 }
+*/

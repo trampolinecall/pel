@@ -17,18 +17,23 @@ mod interpreter {
 
 use std::process::ExitCode;
 
+use wasm_bindgen::prelude::*;
+
 use crate::error::Report;
 
-fn main() -> ExitCode {
+#[wasm_bindgen(start)]
+pub fn main() {
+    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+
     match run() {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(_) => ExitCode::FAILURE,
+        Ok(()) => (),
+        Err(_) => panic!("error"), // TODO: do this better
     }
 }
 
 fn run() -> Result<(), error::ErrorReportedPromise> {
     let file = {
-        let mut args = std::env::args();
+        /* TODO: do this properly
         if args.len() != 2 {
             return Err(error::Error::new(None, "expected 1 argument: input file".to_string()).report());
         } else {
@@ -36,6 +41,40 @@ fn run() -> Result<(), error::ErrorReportedPromise> {
             let source = std::fs::read_to_string(&name).map_err(|err| error::Error::new(None, format!("error opening file: {err}")).report())?;
             source::File::new(name, source)
         }
+        */
+        let name = "scratch".to_string();
+        let source = r#"make var iter;
+
+iter = 0;
+
+while iter < 100 {
+    var output;
+    var fizz = "";
+    var buzz = "";
+
+    if iter % 3 == 0 {
+        fizz = "Fizz";
+    }
+    if iter % 5 == 0 {
+        buzz = "Buzz";
+    }
+
+    output = fizz + buzz;
+    if output != "" {
+        print output;
+    } else {
+        print iter;
+    }
+
+    if iter == 15 {
+        var x;
+        x;
+    }
+
+    iter = iter + 1;
+}"#
+        .to_string();
+        source::File::new(name, source)
     };
 
     let syntax_options =
@@ -43,7 +82,7 @@ fn run() -> Result<(), error::ErrorReportedPromise> {
     let stmts = interpreter::parser::parse_statements(&file, syntax_options)?;
 
     let interpreter = interpreter::interpreter::new_interpreter(stmts);
-    visualizer::run("pel interpreter", (800, 600), interpreter, interpreter::interpreter::InterpreterViewer::view);
+    visualizer::run(interpreter, interpreter::interpreter::InterpreterViewer::view);
 
     Ok(())
 }

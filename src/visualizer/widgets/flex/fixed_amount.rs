@@ -15,6 +15,7 @@ macro_rules! flex {
                 )*
                 _phantom: ::std::marker::PhantomData<fn(&mut Data)>,
             }
+            /* TODO: REMOVE
             #[allow(non_camel_case_types)]
             struct ContainerRenderObject<Data, $($name: $crate::visualizer::render_object::RenderObject<Data>),*> {
                 own_size: graphics::Vector2f,
@@ -24,28 +25,15 @@ macro_rules! flex {
 
                 _phantom: ::std::marker::PhantomData<fn(&mut Data)>,
             }
+            */
 
             #[allow(non_camel_case_types)]
             impl<Data, $($name: Widget<Data>),*> Widget<Data> for Container<Data, $($name),*> {
-                type Result = ContainerRenderObject<Data, $(<$name as Widget<Data>>::Result),*>;
-
-                fn to_render_object(self, id_maker: &mut $crate::visualizer::render_object::RenderObjectIdMaker) -> Self::Result {
-                    ContainerRenderObject {
-                        own_size: graphics::Vector2f::new(0.0, 0.0),
-                        $(
-                            $name: ($crate::visualizer::render_object::animated::Animated::new(self.$name.0), graphics::Vector2f::new(0.0, 0.0), self.$name.1.to_render_object(id_maker)),
-                        )*
-                        _phantom: ::std::marker::PhantomData,
-                    }
-                }
-
-                fn update_render_object(self, render_object: &mut Self::Result, id_maker: &mut $crate::visualizer::render_object::RenderObjectIdMaker) {
-                    $(
-                        render_object.$name.0.set(self.$name.0);
-                        self.$name.1.update_render_object(&mut render_object.$name.2, id_maker);
-                    )*
+                fn to_vdom(self) -> $crate::visualizer::vdom::Element<Data> {
+                    todo!()
                 }
             }
+            /* TODO: REMOVE
             #[allow(non_camel_case_types)]
             impl<Data, $($name: $crate::visualizer::render_object::RenderObject<Data>),*> $crate::visualizer::render_object::RenderObject<Data> for ContainerRenderObject<Data, $($name),*> {
                 fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: $crate::visualizer::layout::SizeConstraints) {
@@ -116,6 +104,7 @@ macro_rules! flex {
                      )*
                 }
             }
+            */
 
             Container {
                 $(

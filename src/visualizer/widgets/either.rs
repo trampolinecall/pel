@@ -1,21 +1,18 @@
 use std::marker::PhantomData;
 
-use crate::visualizer::{
-    event::{GeneralEvent, TargetedEvent},
-    graphics, layout,
-    render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker},
-    widgets::Widget,
-};
+use crate::visualizer::{vdom, widgets::Widget};
 
 pub(crate) enum Either<Data, Left: Widget<Data>, Right: Widget<Data>> {
     Left(Left),
     Right(Right, PhantomData<fn(&mut Data)>),
 }
 
+/* TODO: REMOVE
 pub(crate) enum EitherRenderObject<Data, Left: RenderObject<Data>, Right: RenderObject<Data>> {
     Left(Left),
     Right(Right, PhantomData<fn(&mut Data)>),
 }
+*/
 
 impl<Data, Left: Widget<Data>, Right: Widget<Data>> Either<Data, Left, Right> {
     pub(crate) fn new_left(left: Left) -> Self {
@@ -27,23 +24,11 @@ impl<Data, Left: Widget<Data>, Right: Widget<Data>> Either<Data, Left, Right> {
 }
 
 impl<Data, Left: Widget<Data>, Right: Widget<Data>> Widget<Data> for Either<Data, Left, Right> {
-    type Result = EitherRenderObject<Data, <Left as Widget<Data>>::Result, <Right as Widget<Data>>::Result>;
-
-    fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        match self {
-            Either::Left(l) => EitherRenderObject::Left(l.to_render_object(id_maker)),
-            Either::Right(r, phantom) => EitherRenderObject::Right(r.to_render_object(id_maker), phantom),
-        }
-    }
-
-    fn update_render_object(self, render_object: &mut Self::Result, id_maker: &mut RenderObjectIdMaker) {
-        match (self, render_object) {
-            (Either::Left(widget), EitherRenderObject::Left(ro)) => widget.update_render_object(ro, id_maker),
-            (Either::Right(widget, _), EitherRenderObject::Right(ro, _)) => widget.update_render_object(ro, id_maker),
-            (self_, render_object) => *render_object = self_.to_render_object(id_maker),
-        }
+    fn to_vdom(self) -> vdom::Element<Data> {
+        todo!()
     }
 }
+/* TODO: REMOVE
 impl<Data, Left: RenderObject<Data>, Right: RenderObject<Data>> RenderObject<Data> for EitherRenderObject<Data, Left, Right> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         match self {
@@ -83,3 +68,4 @@ impl<Data, Left: RenderObject<Data>, Right: RenderObject<Data>> RenderObject<Dat
     fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: TargetedEvent) {}
     fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: GeneralEvent) {}
 }
+*/

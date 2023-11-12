@@ -1,3 +1,4 @@
+/* TODO: REMOVE
 use sfml::graphics::Transformable;
 
 use crate::visualizer::graphics;
@@ -23,3 +24,4 @@ pub(crate) fn clip(
         target.draw(&sprite);
     }
 }
+*/

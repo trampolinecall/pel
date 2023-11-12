@@ -3,7 +3,6 @@ mod interpreter;
 use std::future::Future;
 
 use genawaiter::sync::Gen;
-use sfml::graphics::Color;
 
 use crate::{
     interpreter::{
@@ -11,7 +10,7 @@ use crate::{
         lang::Stmt,
     },
     visualizer::{
-        graphics::{self, Fonts},
+        graphics::{self, Color, Fonts, Key},
         widgets::{code_view::code_view, either::Either, flex, label::Label, min_size::MinSize, padding::Padding, responds_to_keyboard::RespondsToKeyboard, Widget},
     },
 };
@@ -57,7 +56,7 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
             })),
         };
 
-        RespondsToKeyboard::<Self, _, _>::new(sfml::window::Key::Space, |interpreter: &mut _| interpreter.step(), widget)
+        RespondsToKeyboard::<Self, _, _>::new(Key::Space, |interpreter: &mut _| interpreter.step(), widget)
     }
 
     fn step(&mut self) {

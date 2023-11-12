@@ -1,9 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::visualizer::{
-    event, graphics, layout,
-    render_object::{animated::Animated, RenderObject, RenderObjectId, RenderObjectIdMaker},
-    widgets::Widget,
+    widgets::Widget, vdom
 };
 
 pub(crate) struct Padding<Data, Child: Widget<Data>> {
@@ -16,6 +14,7 @@ pub(crate) struct Padding<Data, Child: Widget<Data>> {
     _phantom: PhantomData<fn(&mut Data)>,
 }
 
+/* TODO: REMOVE
 pub(crate) struct PaddingRenderObject<Data, Child: RenderObject<Data>> {
     child: Child,
     size: graphics::Vector2f,
@@ -26,6 +25,7 @@ pub(crate) struct PaddingRenderObject<Data, Child: RenderObject<Data>> {
 
     _phantom: PhantomData<fn(&mut Data)>,
 }
+*/
 
 impl<Data, Child: Widget<Data>> Padding<Data, Child> {
     pub(crate) fn new(child: Child, left: f32, top: f32, right: f32, bottom: f32) -> Self {
@@ -37,29 +37,12 @@ impl<Data, Child: Widget<Data>> Padding<Data, Child> {
 }
 
 impl<Data, Child: Widget<Data>> Widget<Data> for Padding<Data, Child> {
-    type Result = PaddingRenderObject<Data, <Child as Widget<Data>>::Result>;
-
-    fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        PaddingRenderObject {
-            child: self.child.to_render_object(id_maker),
-            size: graphics::Vector2f::new(0.0, 0.0),
-            left: Animated::new(self.left),
-            top: Animated::new(self.top),
-            right: Animated::new(self.right),
-            bottom: Animated::new(self.bottom),
-            _phantom: PhantomData,
-        }
-    }
-
-    fn update_render_object(self, render_object: &mut Self::Result, id_maker: &mut RenderObjectIdMaker) {
-        self.child.update_render_object(&mut render_object.child, id_maker);
-        render_object.left.set(self.left);
-        render_object.right.set(self.right);
-        render_object.top.set(self.top);
-        render_object.bottom.set(self.bottom);
+    fn to_vdom(self) -> vdom::Element<Data> {
+        todo!()
     }
 }
 
+/* TODO: REMOVE
 impl<Data, Child: RenderObject<Data>> RenderObject<Data> for PaddingRenderObject<Data, Child> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         let shrunk_sc = sc.shrink(graphics::Vector2f::new(self.left.get_lerped() + self.right.get_lerped(), self.top.get_lerped() + self.bottom.get_lerped()));
@@ -87,3 +70,4 @@ impl<Data, Child: RenderObject<Data>> RenderObject<Data> for PaddingRenderObject
     fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::TargetedEvent) {}
     fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::GeneralEvent) {}
 }
+*/

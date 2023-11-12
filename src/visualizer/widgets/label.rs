@@ -1,8 +1,6 @@
-use sfml::graphics::{Font, Transformable};
-
 use crate::visualizer::{
-    event, graphics, layout,
-    render_object::{util, RenderObject, RenderObjectId, RenderObjectIdMaker},
+    graphics::{self, Font},
+    vdom,
     widgets::Widget,
 };
 
@@ -12,6 +10,7 @@ pub(crate) struct Label<GetFont: Fn(&graphics::Fonts) -> &Font> {
     get_font: GetFont,
     font_size: u32,
 }
+/* TODO: REMOVE
 pub(crate) struct LabelRenderObject<GetFont: Fn(&graphics::Fonts) -> &Font> {
     id: RenderObjectId,
     text: String,
@@ -20,6 +19,7 @@ pub(crate) struct LabelRenderObject<GetFont: Fn(&graphics::Fonts) -> &Font> {
     size: graphics::Vector2f,
     _private: (),
 }
+*/
 
 impl<GetFont: Fn(&graphics::Fonts) -> &Font> Label<GetFont> {
     pub(crate) fn new(text: String, get_font: GetFont, font_size: u32) -> Label<GetFont> {
@@ -28,19 +28,12 @@ impl<GetFont: Fn(&graphics::Fonts) -> &Font> Label<GetFont> {
 }
 
 impl<GetFont: Fn(&graphics::Fonts) -> &Font, Data> Widget<Data> for Label<GetFont> {
-    type Result = LabelRenderObject<GetFont>;
-
-    fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        LabelRenderObject { id: id_maker.next_id(), text: self.text, get_font: self.get_font, font_size: self.font_size, size: graphics::Vector2f::new(0.0, 0.0), _private: () }
-    }
-
-    fn update_render_object(self, render_object: &mut Self::Result, _: &mut RenderObjectIdMaker) {
-        render_object.text = self.text;
-        render_object.get_font = self.get_font;
-        render_object.font_size = self.font_size;
+    fn to_vdom(self) -> vdom::Element<Data> {
+        todo!()
     }
 }
 
+/* TODO: REMOVE
 impl<GetFont: Fn(&graphics::Fonts) -> &Font, Data> RenderObject<Data> for LabelRenderObject<GetFont> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         let text = graphics::Text::new(&self.text, (self.get_font)(&graphics_context.fonts), self.font_size);
@@ -80,3 +73,4 @@ impl<GetFont: Fn(&graphics::Fonts) -> &Font, Data> RenderObject<Data> for LabelR
     fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::TargetedEvent) {}
     fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::GeneralEvent) {}
 }
+*/

@@ -13,6 +13,7 @@ pub(crate) struct File {
 }
 
 impl File {
+    // TODO: have this be private and have load() instead?
     pub(crate) fn new(name: String, source: String) -> Self {
         let lines = source.line_spans().map(|line_span| (line_span.range(), line_span.as_str().to_string())).collect();
         Self { name, source, lines, _dont_construct: () }

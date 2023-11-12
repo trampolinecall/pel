@@ -1,16 +1,10 @@
-use sfml::graphics::Shape;
-
-use crate::visualizer::{
-    event::{GeneralEvent, TargetedEvent},
-    graphics, layout,
-    render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker},
-    widgets::Widget,
-};
+use crate::visualizer::{graphics, vdom, widgets::Widget};
 
 pub(crate) struct TestRect {
     color: graphics::Color,
     size: graphics::Vector2f,
 }
+/* TODO: REMOVE
 pub(crate) struct TestRectRenderObject {
     id: RenderObjectId,
     color: graphics::Color,
@@ -18,6 +12,7 @@ pub(crate) struct TestRectRenderObject {
     layout_size: graphics::Vector2f,
     _private: (),
 }
+*/
 
 impl TestRect {
     pub(crate) fn new(color: graphics::Color, size: graphics::Vector2f) -> TestRect {
@@ -26,19 +21,12 @@ impl TestRect {
 }
 
 impl<Data> Widget<Data> for TestRect {
-    type Result = TestRectRenderObject;
-
-    fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        TestRectRenderObject { color: self.color, ideal_size: self.size, _private: (), layout_size: graphics::Vector2f::new(0.0, 0.0), id: id_maker.next_id() }
-    }
-
-    fn update_render_object(self, render_object: &mut Self::Result, _: &mut RenderObjectIdMaker) {
-        // TODO: animate?
-        render_object.color = self.color;
-        render_object.ideal_size = self.size;
+    fn to_vdom(self) -> vdom::Element<Data> {
+        todo!()
     }
 }
 
+/* TODO: REMOVE
 impl<Data> RenderObject<Data> for TestRectRenderObject {
     fn layout(&mut self, _: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         self.layout_size = sc.clamp_size(self.ideal_size);
@@ -78,3 +66,4 @@ impl<Data> RenderObject<Data> for TestRectRenderObject {
     fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: TargetedEvent) {}
     fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: GeneralEvent) {}
 }
+*/

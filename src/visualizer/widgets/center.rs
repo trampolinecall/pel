@@ -1,10 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::visualizer::{
-    event, graphics, layout,
-    render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker},
-    widgets::Widget,
-};
+use crate::visualizer::{vdom, widgets::Widget};
 
 pub(crate) struct Center<Data, Child: Widget<Data>> {
     child: Child,
@@ -12,12 +8,14 @@ pub(crate) struct Center<Data, Child: Widget<Data>> {
     _phantom: PhantomData<fn(&mut Data)>,
 }
 
+/*
 pub(crate) struct CenterRenderObject<Data, Child: RenderObject<Data>> {
     child: Child,
     size: graphics::Vector2f,
 
     _phantom: PhantomData<fn(&mut Data)>,
 }
+*/
 
 impl<Data, Child: Widget<Data>> Center<Data, Child> {
     pub(crate) fn new(child: Child) -> Self {
@@ -26,17 +24,12 @@ impl<Data, Child: Widget<Data>> Center<Data, Child> {
 }
 
 impl<Data, Child: Widget<Data>> Widget<Data> for Center<Data, Child> {
-    type Result = CenterRenderObject<Data, <Child as Widget<Data>>::Result>;
-
-    fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        CenterRenderObject { child: self.child.to_render_object(id_maker), size: graphics::Vector2f::new(0.0, 0.0), _phantom: PhantomData }
-    }
-
-    fn update_render_object(self, render_object: &mut Self::Result, id_maker: &mut RenderObjectIdMaker) {
-        self.child.update_render_object(&mut render_object.child, id_maker);
+    fn to_vdom(self) -> vdom::Element<Data> {
+        todo!()
     }
 }
 
+/* TODO: REMOVE
 impl<Data, Child: RenderObject<Data>> RenderObject<Data> for CenterRenderObject<Data, Child> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         self.child.layout(graphics_context, sc.with_no_min());
@@ -66,3 +59,4 @@ impl<Data, Child: RenderObject<Data>> RenderObject<Data> for CenterRenderObject<
 fn center(top_left: graphics::Vector2f, max_size: graphics::Vector2f, child_size: graphics::Vector2f) -> graphics::Vector2f {
     top_left + max_size * 0.5 - (child_size / 2.0)
 }
+*/

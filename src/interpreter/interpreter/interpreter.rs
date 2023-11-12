@@ -4,8 +4,7 @@ pub(super) mod value;
 use std::{collections::HashMap, fmt::Display};
 
 use async_recursion::async_recursion;
-use genawaiter::sync::Co;
-use sfml::graphics::Color;
+use genawaiter::sync::Co; // TODO: replace with rc::Co
 
 use crate::{
     interpreter::{
@@ -16,6 +15,7 @@ use crate::{
         lang::{BinaryOp, Expr, ExprKind, ShortCircuitOp, Stmt, StmtKind, UnaryOp, VarName},
     },
     source::{Located, Span},
+    visualizer::graphics::Color,
 };
 
 #[derive(Clone)]
@@ -185,7 +185,6 @@ async fn interpret_statement<'parent, 'parents: 'parent, 'file>(state: &mut Inte
                     Ok(())
                 }
                 None => {
-                    eprintln!("error: variable '{var}' does not exist");
                     Err(RuntimeError { span: stmt.span, kind: RuntimeErrorKind::VarDoesNotExist(var) })
                 }
             }

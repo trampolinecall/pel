@@ -27,10 +27,11 @@ impl<'file, T: Into<Error<'file>>> Report for T {
 }
 
 fn report(error: Error) -> ErrorReportedPromise {
+    // TODO: dont put this in the console
     if let Some(span) = error.span {
-        eprintln!("error at {span}: {}", error.main_message);
+        web_sys::console::log_1(&format!("error at {span}: {}", error.main_message).into());
     } else {
-        eprintln!("error: {}", error.main_message);
+        web_sys::console::log_1(&format!("error: {}", error.main_message).into());
     }
 
     // TODO: do this better

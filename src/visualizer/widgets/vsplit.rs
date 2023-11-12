@@ -1,11 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::visualizer::{
-    event::{GeneralEvent, TargetedEvent},
-    graphics, layout,
-    render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker},
-    widgets::Widget,
-};
+use crate::visualizer::{vdom, widgets::Widget};
 
 pub(crate) struct VSplit<Data, Left: Widget<Data>, Right: Widget<Data>> {
     left: Left,
@@ -14,6 +9,7 @@ pub(crate) struct VSplit<Data, Left: Widget<Data>, Right: Widget<Data>> {
     _phantom: PhantomData<fn(&mut Data)>,
 }
 
+/* TODO: REMOVE
 pub(crate) struct VSplitRenderObject<Data, Left: RenderObject<Data>, Right: RenderObject<Data>> {
     left: Left,
     right: Right,
@@ -23,6 +19,7 @@ pub(crate) struct VSplitRenderObject<Data, Left: RenderObject<Data>, Right: Rend
     _phantom: PhantomData<fn(&mut Data)>,
     _private: (),
 }
+*/
 
 impl<Data, Left: Widget<Data>, Right: Widget<Data>> VSplit<Data, Left, Right> {
     pub(crate) fn new(left: Left, right: Right) -> Self {
@@ -31,17 +28,11 @@ impl<Data, Left: Widget<Data>, Right: Widget<Data>> VSplit<Data, Left, Right> {
 }
 
 impl<Data, Left: Widget<Data>, Right: Widget<Data>> Widget<Data> for VSplit<Data, Left, Right> {
-    type Result = VSplitRenderObject<Data, <Left as Widget<Data>>::Result, <Right as Widget<Data>>::Result>;
-
-    fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        VSplitRenderObject { left: self.left.to_render_object(id_maker), right: self.right.to_render_object(id_maker), size: graphics::Vector2f::new(0.0, 0.0), _phantom: PhantomData, _private: () }
-    }
-
-    fn update_render_object(self, render_object: &mut Self::Result, id_maker: &mut RenderObjectIdMaker) {
-        self.left.update_render_object(&mut render_object.left, id_maker);
-        self.right.update_render_object(&mut render_object.right, id_maker);
+    fn to_vdom(self) -> vdom::Element<Data> {
+        todo!()
     }
 }
+/* TODO: REMOVE
 impl<Data, Left: RenderObject<Data>, Right: RenderObject<Data>> RenderObject<Data> for VSplitRenderObject<Data, Left, Right> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         let half_sc = layout::SizeConstraints { min: graphics::Vector2f::new(sc.min.x / 2.0, sc.min.y), max: graphics::Vector2f::new(sc.max.x / 2.0, sc.max.y) };
@@ -71,3 +62,4 @@ impl<Data, Left: RenderObject<Data>, Right: RenderObject<Data>> RenderObject<Dat
     fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: TargetedEvent) {}
     fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: GeneralEvent) {}
 }
+*/

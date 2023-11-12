@@ -1,10 +1,8 @@
 use std::marker::PhantomData;
 
-use crate::visualizer::{
-    event, graphics, layout,
-    render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker},
-    widgets::Widget,
-};
+// TODO: REMOVE this whole module (let dom handle click events)
+
+use crate::visualizer::{vdom, widgets::Widget};
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub(crate) enum MouseButton {
@@ -20,6 +18,7 @@ pub(crate) struct Clickable<Data, NormalChild: Widget<Data>, ChildOnClicked: Wid
     _phantom: PhantomData<fn(&mut Data)>,
 }
 
+/* TODO: REMOVE
 pub(crate) struct ClickableRenderObject<Data, NormalChild: RenderObject<Data>, ChildOnClicked: RenderObject<Data>, Callback: Fn(&mut Data)> {
     id: RenderObjectId,
     mouse_button: MouseButton,
@@ -32,6 +31,7 @@ pub(crate) struct ClickableRenderObject<Data, NormalChild: RenderObject<Data>, C
     _phantom: PhantomData<fn(&mut Data)>,
     _private: (),
 }
+*/
 
 impl<Data, NormalChild: Widget<Data>, ChildOnClicked: Widget<Data>, Callback: Fn(&mut Data)> Clickable<Data, NormalChild, ChildOnClicked, Callback> {
     pub(crate) fn new(mouse_button: MouseButton, on_click: Callback, normal_child: NormalChild, child_on_clicked: ChildOnClicked) -> Self {
@@ -40,29 +40,12 @@ impl<Data, NormalChild: Widget<Data>, ChildOnClicked: Widget<Data>, Callback: Fn
 }
 
 impl<Data, NormalChild: Widget<Data>, ChildOnClicked: Widget<Data>, Callback: Fn(&mut Data)> Widget<Data> for Clickable<Data, NormalChild, ChildOnClicked, Callback> {
-    type Result = ClickableRenderObject<Data, <NormalChild as Widget<Data>>::Result, <ChildOnClicked as Widget<Data>>::Result, Callback>;
-
-    fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        ClickableRenderObject {
-            id: id_maker.next_id(),
-            mouse_button: self.mouse_button,
-            on_click: self.on_click,
-            normal_child: self.normal_child.to_render_object(id_maker),
-            child_on_clicked: self.child_on_clicked.to_render_object(id_maker),
-            clicked: false,
-            _phantom: PhantomData,
-            _private: (),
-        }
-    }
-
-    fn update_render_object(self, render_object: &mut Self::Result, id_maker: &mut RenderObjectIdMaker) {
-        render_object.mouse_button = self.mouse_button;
-        render_object.on_click = self.on_click;
-        self.normal_child.update_render_object(&mut render_object.normal_child, id_maker);
-        self.child_on_clicked.update_render_object(&mut render_object.child_on_clicked, id_maker);
+    fn to_vdom(self) -> vdom::Element<Data> {
+        todo!()
     }
 }
 
+/* TODO: REMOVE
 impl<Data, NormalChild: RenderObject<Data>, ChildOnClicked: RenderObject<Data>, Callback: Fn(&mut Data)> RenderObject<Data> for ClickableRenderObject<Data, NormalChild, ChildOnClicked, Callback> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         self.normal_child.layout(graphics_context, sc);
@@ -150,3 +133,4 @@ impl<Data, NormalChild: RenderObject<Data>, ChildOnClicked: RenderObject<Data>, 
         }
     }
 }
+*/

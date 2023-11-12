@@ -1,25 +1,20 @@
-use crate::visualizer::{
-    event, graphics, layout,
-    render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker},
-    widgets::Widget,
-};
+use crate::visualizer::{vdom, widgets::Widget};
 
 pub(crate) struct Empty;
 
+/* TODO: REMOVE
 pub(crate) struct EmptyRenderObject {
     size: graphics::Vector2f,
 }
+*/
 
 impl<Data> Widget<Data> for Empty {
-    type Result = EmptyRenderObject;
-
-    fn to_render_object(self, _: &mut RenderObjectIdMaker) -> Self::Result {
-        EmptyRenderObject { size: graphics::Vector2f::new(0.0, 0.0) }
+    fn to_vdom(self) -> vdom::Element<Data> {
+        todo!()
     }
-
-    fn update_render_object(self, _: &mut Self::Result, _: &mut RenderObjectIdMaker) {}
 }
 
+/* TODO: REMOVE
 impl<Data> RenderObject<Data> for EmptyRenderObject {
     fn layout(&mut self, _: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         self.size = sc.clamp_size(graphics::Vector2f::new(0.0, 0.0));
@@ -39,3 +34,4 @@ impl<Data> RenderObject<Data> for EmptyRenderObject {
     fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::TargetedEvent) {}
     fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::GeneralEvent) {}
 }
+*/

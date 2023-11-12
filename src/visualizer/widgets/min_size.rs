@@ -1,9 +1,9 @@
 use std::marker::PhantomData;
 
+// TODO: REMOVE this whole widget?
+
 use crate::visualizer::{
-    event, graphics, layout,
-    render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker},
-    widgets::Widget,
+    widgets::Widget, vdom, graphics
 };
 
 pub(crate) struct MinSize<Data, Child: Widget<Data>> {
@@ -13,12 +13,14 @@ pub(crate) struct MinSize<Data, Child: Widget<Data>> {
     _phantom: PhantomData<fn(&mut Data)>,
 }
 
+/* TODO: REMOVE
 pub(crate) struct MinSizeRenderObject<Data, Child: RenderObject<Data>> {
     child: Child,
     min_size: graphics::Vector2f,
 
     _phantom: PhantomData<fn(&mut Data)>,
 }
+*/
 
 impl<Data, Child: Widget<Data>> MinSize<Data, Child> {
     pub(crate) fn new(child: Child, min_size: graphics::Vector2f) -> Self {
@@ -27,18 +29,12 @@ impl<Data, Child: Widget<Data>> MinSize<Data, Child> {
 }
 
 impl<Data, Child: Widget<Data>> Widget<Data> for MinSize<Data, Child> {
-    type Result = MinSizeRenderObject<Data, <Child as Widget<Data>>::Result>;
-
-    fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        MinSizeRenderObject { child: self.child.to_render_object(id_maker), min_size: self.min_size, _phantom: PhantomData }
-    }
-
-    fn update_render_object(self, render_object: &mut Self::Result, id_maker: &mut RenderObjectIdMaker) {
-        render_object.min_size = self.min_size;
-        self.child.update_render_object(&mut render_object.child, id_maker);
+    fn to_vdom(self) -> vdom::Element<Data> {
+        todo!()
     }
 }
 
+/* TODO: REMOVE
 impl<Data, Child: RenderObject<Data>> RenderObject<Data> for MinSizeRenderObject<Data, Child> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         let size = sc.clamp_size(self.min_size);
@@ -64,3 +60,4 @@ impl<Data, Child: RenderObject<Data>> RenderObject<Data> for MinSizeRenderObject
     fn targeted_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::TargetedEvent) {}
     fn general_event(&mut self, _: graphics::Vector2f, _: &mut Data, _: event::GeneralEvent) {}
 }
+*/

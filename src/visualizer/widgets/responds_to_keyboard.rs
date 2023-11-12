@@ -1,20 +1,17 @@
 // TODO: this should probably be removed when i figure out a better event dispatch system
 use std::marker::PhantomData;
 
-use crate::visualizer::{
-    event, graphics, layout,
-    render_object::{RenderObject, RenderObjectId, RenderObjectIdMaker},
-    widgets::Widget,
-};
+use crate::visualizer::{graphics::Key, vdom, widgets::Widget};
 
 pub(crate) struct RespondsToKeyboard<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> {
-    key: sfml::window::Key,
+    key: Key,
     on_press: Callback,
     child: Child,
 
     _phantom: PhantomData<fn(&mut Data)>,
 }
 
+/* TODO: REMOVE
 pub(crate) struct RespondsToKeyboardRenderObject<Data, Child: RenderObject<Data>, Callback: Fn(&mut Data)> {
     id: RenderObjectId,
     key: sfml::window::Key,
@@ -24,27 +21,21 @@ pub(crate) struct RespondsToKeyboardRenderObject<Data, Child: RenderObject<Data>
     _phantom: PhantomData<fn(&mut Data)>,
     _private: (),
 }
+*/
 
 impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> RespondsToKeyboard<Data, Child, Callback> {
-    pub(crate) fn new(key: sfml::window::Key, on_press: Callback, child: Child) -> Self {
+    pub(crate) fn new(key: Key, on_press: Callback, child: Child) -> Self {
         Self { key, on_press, child, _phantom: PhantomData }
     }
 }
 
 impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> Widget<Data> for RespondsToKeyboard<Data, Child, Callback> {
-    type Result = RespondsToKeyboardRenderObject<Data, <Child as Widget<Data>>::Result, Callback>;
-
-    fn to_render_object(self, id_maker: &mut RenderObjectIdMaker) -> Self::Result {
-        RespondsToKeyboardRenderObject { id: id_maker.next_id(), key: self.key, on_press: self.on_press, child: self.child.to_render_object(id_maker), _phantom: PhantomData, _private: () }
-    }
-
-    fn update_render_object(self, render_object: &mut Self::Result, id_maker: &mut RenderObjectIdMaker) {
-        render_object.key = self.key;
-        render_object.on_press = self.on_press;
-        self.child.update_render_object(&mut render_object.child, id_maker);
+    fn to_vdom(self) -> vdom::Element<Data> {
+        todo!()
     }
 }
 
+/* TODO: REMOVE
 impl<Data, Child: RenderObject<Data>, Callback: Fn(&mut Data)> RenderObject<Data> for RespondsToKeyboardRenderObject<Data, Child, Callback> {
     fn layout(&mut self, graphics_context: &graphics::GraphicsContext, sc: layout::SizeConstraints) {
         self.child.layout(graphics_context, sc);
@@ -91,3 +82,4 @@ impl<Data, Child: RenderObject<Data>, Callback: Fn(&mut Data)> RenderObject<Data
         self.child.general_event(top_left, data, event);
     }
 }
+*/
