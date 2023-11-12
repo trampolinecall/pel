@@ -201,7 +201,7 @@ fn update_dom<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(
 
         // clear event listeners by replacing with a clone
         // (this goes at the end because the original dom node should not be modified after the clone is made)
-        // TODO: find a better way to clear event listeners?
+        // TODO: find a better way to clear event listeners (this defeats the purpose of trying to keep the node tree as unchanged as possible because this would replace every node anyways)
         let parent_node = dom.parent_node().expect("node should have parent");
         let clone = dom.clone_node_with_deep(true).unwrap(); // TODO: handle error properly
         parent_node.replace_child(&clone, dom).unwrap(); // TODO: handle error properly
