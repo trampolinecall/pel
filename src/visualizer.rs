@@ -8,7 +8,7 @@ pub(crate) mod dom;
 
 use crate::visualizer::widgets::Widget;
 
-pub(crate) fn run<Model, ModelAsWidget: Widget<Model>>(mut model: Model, model_to_widget: impl Fn(&Model) -> ModelAsWidget) {
+pub(crate) fn run<Model: 'static, ModelAsWidget: Widget<Model>>(mut model: Model, model_to_widget: impl Fn(&Model) -> ModelAsWidget) {
     let document = web_sys::window().expect("no global window").document().expect("no document on window");
     let app_div = document.get_element_by_id("app").expect("no div with id 'app'");
 

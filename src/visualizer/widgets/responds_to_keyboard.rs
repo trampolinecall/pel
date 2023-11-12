@@ -1,11 +1,13 @@
 // TODO: this should probably be removed when i figure out a better event dispatch system
 use std::marker::PhantomData;
 
-use crate::visualizer::{graphics::Key, dom, widgets::Widget};
+use wasm_bindgen::JsCast;
 
-pub(crate) struct RespondsToKeyboard<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> {
+use crate::visualizer::{dom, graphics::Key, widgets::Widget};
+
+pub(crate) struct RespondsToKeyboard<Data, Child: Widget<Data>, Callback: Fn(&mut Data) + 'static> {
     key: Key,
-    on_press: Callback,
+    callback: Callback,
     child: Child,
 
     _phantom: PhantomData<fn(&mut Data)>,
@@ -24,23 +26,27 @@ pub(crate) struct RespondsToKeyboardRenderObject<Data, Child: RenderObject<Data>
 */
 
 impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> RespondsToKeyboard<Data, Child, Callback> {
-    pub(crate) fn new(key: Key, on_press: Callback, child: Child) -> Self {
-        Self { key, on_press, child, _phantom: PhantomData }
+    pub(crate) fn new(key: Key, callback: Callback, child: Child) -> Self {
+        Self { key, callback, child, _phantom: PhantomData }
     }
 }
 
 impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> Widget<Data> for RespondsToKeyboard<Data, Child, Callback> {
     fn to_vdom(self) -> dom::Element<Data> {
-        todo!()
-        /* TODO
         let mut child = self.child.to_vdom();
-        let old_tabindex = child.props.insert("tabindex".to_string(), 0.into());
-        assert!(old_tabindex.is_none()); // TODO: figure out what should actually happen
-        child.event_listeners.push(("keyup", Box::new(|data| {
-            if
-        })));
+        let old_tab_index = child.props.insert("tabIndex".to_string(), 0.into());
+        assert!(old_tab_index.is_none()); // TODO: figure out what should actually happen
+        child.event_listeners.push(("keyup", {
+            let checking = match self.key {
+                Key::Space => " ",
+            };
+            Box::new(move |event, data| {
+                if event.dyn_ref::<web_sys::KeyboardEvent>().expect("keyup should not recieve event data that is not KeyboardEvent").key() == checking {
+                    (self.callback)(data);
+                }
+            })
+        }));
         child
-        */
     }
 }
 

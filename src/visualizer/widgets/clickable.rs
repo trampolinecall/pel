@@ -42,7 +42,7 @@ impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> Clickable<Data, Child, 
 impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data) + 'static> Widget<Data> for Clickable<Data, Child, Callback> {
     fn to_vdom(self) -> dom::Element<Data> {
         let mut child = self.child.to_vdom();
-        child.event_listeners.push(("click", Box::new(self.on_click)));
+        child.event_listeners.push(("click", Box::new(move |_, data| (self.on_click)(data))));
         child
     }
 }

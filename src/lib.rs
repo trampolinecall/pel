@@ -32,18 +32,21 @@ pub fn main() {
 }
 
 fn run() -> Result<(), error::ErrorReportedPromise> {
-    let file = {
-        /* TODO: do this properly
-        if args.len() != 2 {
-            return Err(error::Error::new(None, "expected 1 argument: input file".to_string()).report());
-        } else {
-            let name = args.nth(1).expect("args should have 2 items because that is checked in the if clause above");
-            let source = std::fs::read_to_string(&name).map_err(|err| error::Error::new(None, format!("error opening file: {err}")).report())?;
-            source::File::new(name, source)
-        }
-        */
-        let name = "scratch".to_string();
-        let source = r#"make var iter;
+    // TODO: figure this out better
+    // (also don't forget to remove lazy_static dependency when you figure it out)
+    lazy_static::lazy_static! {
+        static ref FILE: source::File = {
+            /* TODO: do this properly
+            if args.len() != 2 {
+                return Err(error::Error::new(None, "expected 1 argument: input file".to_string()).report());
+            } else {
+                let name = args.nth(1).expect("args should have 2 items because that is checked in the if clause above");
+                let source = std::fs::read_to_string(&name).map_err(|err| error::Error::new(None, format!("error opening file: {err}")).report())?;
+                source::File::new(name, source)
+            }
+            */
+            let name = "scratch".to_string();
+            let source = r#"make var iter;
 
 iter = 0;
 
@@ -73,13 +76,14 @@ while iter < 100 {
 
     iter = iter + 1;
 }"#
-        .to_string();
-        source::File::new(name, source)
-    };
+            .to_string();
+            source::File::new(name, source)
+        };
+    }
 
     let syntax_options =
         interpreter::parser::SyntaxOptions { assign_type: interpreter::parser::AssignStatementType::Keyword, variable_decl_type: interpreter::parser::VariableDeclarationType::Keyword };
-    let stmts = interpreter::parser::parse_statements(&file, syntax_options)?;
+    let stmts = interpreter::parser::parse_statements(&FILE, syntax_options)?;
 
     let interpreter = interpreter::interpreter::new_interpreter(stmts);
     visualizer::run(interpreter, interpreter::interpreter::InterpreterViewer::view);
