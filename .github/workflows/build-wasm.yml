@@ -34,7 +34,7 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
           rustup uupdate
       - name: Install 'wasm-pack'
-        uses: michaelpeterswa/rust-wasm-pack-action@v1.0.0
+        run: cargo install wasm-pack
       - name: Build Wasm
         run: wasm-pack build --target web
       - name: Upload artifact
