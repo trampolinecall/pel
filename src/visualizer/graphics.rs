@@ -36,7 +36,7 @@ impl Fonts {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Color {
     pub(crate) r: u8,
     pub(crate) g: u8,

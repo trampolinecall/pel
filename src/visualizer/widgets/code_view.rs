@@ -18,21 +18,11 @@ pub(crate) struct LineView<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Fo
     font_size: u32,
 }
 
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(Hash, PartialEq, Eq, Copy, Clone)]
 struct LineHighlight {
     start: usize,
     end: usize,
     color: graphics::Color,
-}
-impl Hash for LineHighlight {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.start.hash(state);
-        self.end.hash(state);
-        self.color.r.hash(state);
-        self.color.g.hash(state);
-        self.color.b.hash(state);
-        self.color.a.hash(state);
-    }
 }
 #[derive(Copy, Clone, Eq, PartialEq)]
 enum HighlightShownAmount {
