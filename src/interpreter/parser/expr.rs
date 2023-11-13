@@ -1,21 +1,21 @@
 use crate::{
     error::{Error, ErrorReportedPromise, Report},
     interpreter::lang::{BinaryOp, Expr, ExprKind, ShortCircuitOp, UnaryOp, VarName},
-    interpreter::parser::{parser::Parser, token::Token, SyntaxOptions},
+    interpreter::parser::{parser::Parser, token::Token},
     source::Located,
 };
 
-pub(super) fn expression<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions) -> Result<Expr<'file>, ErrorReportedPromise> {
-    or(parser, syntax_options)
+pub(super) fn expression<'file>(parser: &mut Parser<'file>) -> Result<Expr<'file>, ErrorReportedPromise> {
+    or(parser)
 }
 
 macro_rules! left_associative_binary_op {
     ($name:ident, $next_level:ident, $expr_variant:ident, $operator_predicate:expr $(,)?) => {
-        fn $name<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions) -> Result<Expr<'file>, ErrorReportedPromise> {
-            let mut left = $next_level(parser, syntax_options)?;
+        fn $name<'file>(parser: &mut Parser<'file>) -> Result<Expr<'file>, ErrorReportedPromise> {
+            let mut left = $next_level(parser)?;
 
             while let Some(op) = parser.maybe_consume($operator_predicate) {
-                let right = $next_level(parser, syntax_options)?;
+                let right = $next_level(parser)?;
                 let span = left.span + right.span;
                 left = Expr { kind: ExprKind::$expr_variant(Box::new(left), op, Box::new(right)), span };
             }
@@ -57,22 +57,22 @@ left_associative_binary_op!(factor, unary, BinaryOp, |tok| match tok.1 {
     _ => None,
 });
 
-fn unary<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions) -> Result<Expr<'file>, ErrorReportedPromise> {
+fn unary<'file>(parser: &mut Parser<'file>) -> Result<Expr<'file>, ErrorReportedPromise> {
     if let Some(operator) = parser.maybe_consume(|tok| match tok.1 {
         Token::Bang => Some(Located(tok.0, UnaryOp::LogicalNegate)),
         Token::Minus => Some(Located(tok.0, UnaryOp::NumericNegate)),
         _ => None,
     }) {
-        let operand = unary(parser, syntax_options)?;
+        let operand = unary(parser)?;
         let total_span = operator.0 + operand.span;
         Ok(Expr { kind: ExprKind::UnaryOp(operator, Box::new(operand)), span: total_span })
     } else {
-        call(parser, syntax_options)
+        call(parser)
     }
 }
 
-fn call<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions) -> Result<Expr<'file>, ErrorReportedPromise> {
-    let mut expr = primary(parser, syntax_options)?;
+fn call<'file>(parser: &mut Parser<'file>) -> Result<Expr<'file>, ErrorReportedPromise> {
+    let mut expr = primary(parser)?;
 
     while let Some(()) = parser.maybe_consume(|tok| match tok.1 {
         Token::OParen => Some(()),
@@ -80,12 +80,12 @@ fn call<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions) -> Res
     }) {
         let mut arguments = Vec::new();
         if !parser.peek_matches(|tok| matches!(tok, Token::CParen)) {
-            arguments.push(expression(parser, syntax_options)?);
+            arguments.push(expression(parser)?);
             while let Some(()) = parser.maybe_consume(|tok| match tok.1 {
                 Token::Comma => Some(()),
                 _ => None,
             }) {
-                arguments.push(expression(parser, syntax_options)?);
+                arguments.push(expression(parser)?);
             }
         }
 
@@ -102,7 +102,7 @@ fn call<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions) -> Res
     Ok(expr)
 }
 
-fn primary<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions) -> Result<Expr<'file>, ErrorReportedPromise> {
+fn primary<'file>(parser: &mut Parser<'file>) -> Result<Expr<'file>, ErrorReportedPromise> {
     let next = parser.next();
     match next.1 {
         Token::Identifier(n) => Ok(Expr { kind: ExprKind::Var(VarName(n)), span: next.0 }),
@@ -112,7 +112,7 @@ fn primary<'file>(parser: &mut Parser<'file>, syntax_options: SyntaxOptions) -> 
         Token::BoolLit(b) => Ok(Expr { kind: ExprKind::Bool(b), span: next.0 }),
 
         Token::OParen => {
-            let inner = expression(parser, syntax_options)?;
+            let inner = expression(parser)?;
 
             let cparen_sp = parser.consume(|tok| match tok.1 {
                 Token::CParen => Ok(tok.0),

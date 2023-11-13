@@ -72,9 +72,7 @@ while iter < 100 {
         };
     }
 
-    let syntax_options =
-        interpreter::parser::SyntaxOptions { assign_type: interpreter::parser::AssignStatementType::Keyword, variable_decl_type: interpreter::parser::VariableDeclarationType::Keyword };
-    let stmts = interpreter::parser::parse_statements(&FILE, syntax_options)?;
+    let stmts = interpreter::parser::parse_statements(&FILE)?;
     let interpreter = { interpreter::interpreter::new_interpreter(stmts) };
     app::run(interpreter, interpreter::interpreter::InterpreterViewer::view);
 

@@ -5,23 +5,6 @@ use crate::{
     source::File,
 };
 
-// TODO: syntax options
-#[derive(Copy, Clone, PartialEq, Eq)]
-pub(crate) enum AssignStatementType {
-    Keyword,
-    Symbol,
-}
-#[derive(Copy, Clone, PartialEq, Eq)]
-pub(crate) enum VariableDeclarationType {
-    Keyword,
-    Symbol,
-}
-#[derive(Copy, Clone)]
-pub(crate) struct SyntaxOptions {
-    pub(crate) assign_type: AssignStatementType,
-    pub(crate) variable_decl_type: VariableDeclarationType,
-}
-
 mod token;
 
 mod lexer;
@@ -31,9 +14,9 @@ mod parser;
 mod expr;
 mod stmt;
 
-pub(crate) fn parse_expr(file: &File, syntax_options: SyntaxOptions) -> Result<Expr, ErrorReportedPromise> {
+pub(crate) fn parse_expr(file: &File) -> Result<Expr, ErrorReportedPromise> {
     let mut parser = parser::Parser::new(lexer::Lexer::new(file));
-    let expr = expr::expression(&mut parser, syntax_options);
+    let expr = expr::expression(&mut parser);
     parser.consume(|tok| match tok.1 {
         Token::Eof => Ok(()),
         _ => Err(Error::new(Some(tok.0), "extraneous input".to_string()).report()),
@@ -41,11 +24,11 @@ pub(crate) fn parse_expr(file: &File, syntax_options: SyntaxOptions) -> Result<E
     expr
 }
 
-pub(crate) fn parse_statements(file: &File, syntax_options: SyntaxOptions) -> Result<Vec<Stmt>, ErrorReportedPromise> {
+pub(crate) fn parse_statements(file: &File) -> Result<Vec<Stmt>, ErrorReportedPromise> {
     let mut parser = parser::Parser::new(lexer::Lexer::new(file));
     let mut statements = Vec::new();
     while !parser.peek_matches(|tok| matches!(tok, Token::Eof)) {
-        statements.push(stmt::statement(&mut parser, syntax_options)?);
+        statements.push(stmt::statement(&mut parser)?);
         // TODO: panic mode error recovery?
     }
 
