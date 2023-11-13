@@ -1,4 +1,4 @@
-use crate::app::{vdom, graphics, widgets::Widget};
+use crate::app::{graphics, vdom, widgets::Widget};
 
 pub(crate) struct TestRect {
     color: graphics::Color,

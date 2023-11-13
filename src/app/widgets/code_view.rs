@@ -1,11 +1,11 @@
 use std::{collections::HashMap, hash::Hash, ops::Range};
 
 use crate::{
-    source::Span,
     app::{
-        vdom, graphics,
+        graphics, vdom,
         widgets::{center::Center, expand::Expand, fixed_size::FixedSize, flex, label::Label, min_size::MinSize, Widget},
     },
+    source::Span,
 };
 
 const SHRINK_SCALE_FACTOR: f32 = 0.8; // TODO: put this in a better place

@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::app::{vdom, graphics, widgets::Widget};
+use crate::app::{graphics, vdom, widgets::Widget};
 
 // TODO: REMOVE this module?
 

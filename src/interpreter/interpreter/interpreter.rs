@@ -7,6 +7,7 @@ use async_recursion::async_recursion;
 use genawaiter::sync::Co; // TODO: replace with rc::Co
 
 use crate::{
+    app::graphics::Color,
     interpreter::{
         interpreter::interpreter::{
             type_::Type,
@@ -15,7 +16,6 @@ use crate::{
         lang::{BinaryOp, Expr, ExprKind, ShortCircuitOp, Stmt, StmtKind, UnaryOp, VarName},
     },
     source::{Located, Span},
-    app::graphics::Color,
 };
 
 #[derive(Clone)]

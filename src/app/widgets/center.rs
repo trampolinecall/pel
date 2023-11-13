@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::app::{widgets::Widget, vdom};
+use crate::app::{vdom, widgets::Widget};
 
 pub(crate) struct Center<Data, Child: Widget<Data>> {
     child: Child,

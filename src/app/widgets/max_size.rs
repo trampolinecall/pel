@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 // TODO: REMOVE whole module?
 
-use crate::app::{vdom, graphics, widgets::Widget};
+use crate::app::{graphics, vdom, widgets::Widget};
 
 pub(crate) struct MaxSize<Data, Child: Widget<Data>> {
     child: Child,

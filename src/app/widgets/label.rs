@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::app::{
-    vdom,
     graphics::{self, Font},
+    vdom,
     widgets::Widget,
 };
 

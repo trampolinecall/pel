@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 
 use wasm_bindgen::JsCast;
 
-use crate::app::{vdom, graphics::Key, widgets::Widget};
+use crate::app::{graphics::Key, vdom, widgets::Widget};
 
 pub(crate) struct RespondsToKeyboard<Data, Child: Widget<Data>, Callback: Fn(&mut Data) + 'static> {
     key: Key,

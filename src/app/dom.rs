@@ -93,7 +93,16 @@ impl<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) ->
     ) {
         match (old_vdom, new_vdom) {
             (vdom::Node::Element(old_vdom), vdom::Node::Element(new_vdom)) => {
-                Self::update_dom(closures, dom_refcell, data, to_widget, document, dom.dyn_ref().expect("if both old vdom and new vdom are elements, the current dom should be element"), old_vdom, new_vdom);
+                Self::update_dom(
+                    closures,
+                    dom_refcell,
+                    data,
+                    to_widget,
+                    document,
+                    dom.dyn_ref().expect("if both old vdom and new vdom are elements, the current dom should be element"),
+                    old_vdom,
+                    new_vdom,
+                );
             }
             (vdom::Node::Text(_), vdom::Node::Text(new_text)) => {
                 dom.set_node_value(Some(new_text));
