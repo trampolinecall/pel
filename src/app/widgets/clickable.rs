@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 // TODO: REMOVE this whole module (let dom handle click events)
 
-use crate::visualizer::{dom, widgets::Widget};
+use crate::app::{vdom, widgets::Widget};
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub(crate) enum MouseButton {
@@ -40,7 +40,7 @@ impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> Clickable<Data, Child, 
 
 // TODO: is + 'static really supposed to be there?
 impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data) + 'static> Widget<Data> for Clickable<Data, Child, Callback> {
-    fn to_vdom(self) -> dom::Element<Data> {
+    fn to_vdom(self) -> vdom::Element<Data> {
         let mut child = self.child.to_vdom();
         child.event_listeners.push(("click", Box::new(move |_, data| (self.on_click)(data))));
         child

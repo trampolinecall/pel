@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 
 use wasm_bindgen::JsCast;
 
-use crate::visualizer::{dom, graphics::Key, widgets::Widget};
+use crate::app::{vdom, graphics::Key, widgets::Widget};
 
 pub(crate) struct RespondsToKeyboard<Data, Child: Widget<Data>, Callback: Fn(&mut Data) + 'static> {
     key: Key,
@@ -32,7 +32,7 @@ impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> RespondsToKeyboard<Data
 }
 
 impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> Widget<Data> for RespondsToKeyboard<Data, Child, Callback> {
-    fn to_vdom(self) -> dom::Element<Data> {
+    fn to_vdom(self) -> vdom::Element<Data> {
         let mut child = self.child.to_vdom();
         let old_tab_index = child.props.insert("tabIndex".to_string(), 0.into());
         assert!(old_tab_index.is_none()); // TODO: figure out what should actually happen

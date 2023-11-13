@@ -15,7 +15,7 @@ use crate::{
         lang::{BinaryOp, Expr, ExprKind, ShortCircuitOp, Stmt, StmtKind, UnaryOp, VarName},
     },
     source::{Located, Span},
-    visualizer::graphics::Color,
+    app::graphics::Color,
 };
 
 #[derive(Clone)]

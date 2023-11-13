@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 // TODO: REMOVE whole module?
 
-use crate::visualizer::{dom, graphics, widgets::Widget};
+use crate::app::{vdom, graphics, widgets::Widget};
 
 pub(crate) struct MaxSize<Data, Child: Widget<Data>> {
     child: Child,
@@ -27,13 +27,13 @@ impl<Data, Child: Widget<Data>> MaxSize<Data, Child> {
 }
 
 impl<Data, Child: Widget<Data>> Widget<Data> for MaxSize<Data, Child> {
-    fn to_vdom(self) -> dom::Element<Data> {
-        dom::Element {
-            type_: dom::ElementType::Div,
+    fn to_vdom(self) -> vdom::Element<Data> {
+        vdom::Element {
+            type_: vdom::ElementType::Div,
             // TODO: do something about .into_iter().collect() (and remember to change it across the whole project)
             props: vec![("style".to_string(), format!("max-width: {}px; max-height: {}px;", self.max_size.x, self.max_size.y).into())].into_iter().collect(),
             event_listeners: Vec::new(),
-            children: vec![dom::ElementChild::Element(self.child.to_vdom())],
+            children: vec![vdom::Node::Element(self.child.to_vdom())],
         }
     }
 }

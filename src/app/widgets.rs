@@ -13,7 +13,7 @@ pub(crate) mod padding;
 pub(crate) mod responds_to_keyboard;
 pub(crate) mod test_rect;
 
-use crate::visualizer::dom::Element;
+use crate::app::vdom::Element;
 
 pub(crate) trait Widget<Data: ?Sized> {
     fn to_vdom(self) -> Element<Data>;

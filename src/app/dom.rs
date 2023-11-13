@@ -1,68 +1,37 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
-use web_sys::js_sys::Reflect;
+use web_sys::js_sys;
 
-use crate::visualizer::widgets::Widget;
+use crate::app::{vdom, widgets::Widget};
 
 // the dom, the vdom that created it, and the closures that this dom references
-pub(crate) struct ActualDom<Data, DataAsWidget: Widget<Data>, ToWidget: Fn(&Data) -> DataAsWidget + Copy> {
+pub(crate) struct Dom<Data, DataAsWidget: Widget<Data>, ToWidget: Fn(&Data) -> DataAsWidget + Copy> {
     dom: web_sys::Element,
-    vdom: Element<Data>,
+    vdom: vdom::Element<Data>,
     to_widget: ToWidget,
     closures: Vec<Closure<dyn Fn(JsValue)>>,
 }
 
-// TODO: it seems a bit strange to have the Data parameter here; figure out a better way?
-pub(crate) struct Element<Data: ?Sized> {
-    pub(crate) type_: ElementType,
-    pub(crate) props: HashMap<String, JsValue>,                                       // TODO: make this &'static str instead of String?
-    pub(crate) event_listeners: Vec<(&'static str, Box<dyn Fn(JsValue, &mut Data)>)>, // TODO: do not box closures?
-    pub(crate) children: Vec<ElementChild<Data>>,
-}
-#[derive(Copy, Clone, PartialEq, Eq)]
-pub(crate) enum ElementType {
-    Div,
-    P,
-    Pre,
-    Code,
-}
-pub(crate) enum ElementChild<Data: ?Sized> {
-    Element(Element<Data>),
-    Text(String),
-}
+// TODO: clean up this whole module
 
-impl ElementType {
-    fn stringify(&self) -> &'static str {
-        match self {
-            ElementType::Div => "div",
-            ElementType::P => "p",
-            ElementType::Pre => "pre",
-            ElementType::Code => "code",
-        }
-    }
-}
-// TODO: clean this up
-impl<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) -> DataAsWidget + Copy + 'static> ActualDom<Data, DataAsWidget, ToWidget> {
-    fn new_empty(document: &web_sys::Document, parent: &web_sys::Node, to_widget: ToWidget) -> ActualDom<Data, DataAsWidget, ToWidget> {
+impl<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) -> DataAsWidget + Copy + 'static> Dom<Data, DataAsWidget, ToWidget> {
+    fn new_empty(document: &web_sys::Document, parent: &web_sys::Node, to_widget: ToWidget) -> Dom<Data, DataAsWidget, ToWidget> {
         let closures = Vec::new();
-        let vdom = Element { type_: ElementType::Div, props: HashMap::new(), event_listeners: Vec::new(), children: Vec::new() };
-        let dom = document.create_element(ElementType::Div.stringify()).unwrap(); // TODO: handle errors properly
+        let vdom = vdom::Element { type_: vdom::ElementType::Div, props: HashMap::new(), event_listeners: Vec::new(), children: Vec::new() };
+        let dom = document.create_element(vdom::ElementType::Div.stringify()).unwrap(); // TODO: handle errors properly
         parent.append_child(&dom).unwrap(); // TODO: handle this error properly
-        ActualDom { dom, vdom, to_widget, closures }
+        Dom { dom, vdom, to_widget, closures }
     }
 
-    pub(crate) fn new(data: &Rc<RefCell<Data>>, document: &web_sys::Document, parent: &web_sys::Node, to_widget: ToWidget) -> Rc<RefCell<ActualDom<Data, DataAsWidget, ToWidget>>> {
+    pub(crate) fn new(data: &Rc<RefCell<Data>>, document: &web_sys::Document, parent: &web_sys::Node, to_widget: ToWidget) -> Rc<RefCell<Dom<Data, DataAsWidget, ToWidget>>> {
         let vdom = to_widget(&data.borrow()).to_vdom();
         let dom = Rc::new(RefCell::new(Self::new_empty(document, parent, to_widget)));
         dom.borrow_mut().update(&dom, data, document, vdom);
         dom
     }
 
-    pub(crate) fn dom(&self) -> &web_sys::Element {
-        &self.dom
-    }
-    pub(crate) fn update(&mut self, dom_refcell: &Rc<RefCell<ActualDom<Data, DataAsWidget, ToWidget>>>, data: &Rc<RefCell<Data>>, document: &web_sys::Document, mut new_vdom: Element<Data>) {
+    pub(crate) fn update(&mut self, dom_refcell: &Rc<RefCell<Dom<Data, DataAsWidget, ToWidget>>>, data: &Rc<RefCell<Data>>, document: &web_sys::Document, mut new_vdom: vdom::Element<Data>) {
         self.closures.clear();
         self.dom = update_dom(&mut self.closures, dom_refcell, data, self.to_widget, document, &self.dom, &self.vdom, &mut new_vdom);
         self.vdom = new_vdom;
@@ -71,36 +40,36 @@ impl<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) ->
 
 fn make_child<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) -> DataAsWidget + Copy + 'static>(
     closures: &mut Vec<Closure<dyn Fn(JsValue)>>,
-    dom_refcell: &Rc<RefCell<ActualDom<Data, DataAsWidget, ToWidget>>>,
+    dom_refcell: &Rc<RefCell<Dom<Data, DataAsWidget, ToWidget>>>,
     data: &Rc<RefCell<Data>>,
     to_widget: ToWidget,
     document: &web_sys::Document,
-    child: &mut ElementChild<Data>,
+    child: &mut vdom::Node<Data>,
     parent: &web_sys::Element,
 ) {
     // TODO: handle all the errors properly (all the unwraps) (maybe also grep over all code too?)
     match child {
-        ElementChild::Element(e) => {
+        vdom::Node::Element(e) => {
             parent.append_child(&make_dom(closures, dom_refcell, data, to_widget, document, e)).unwrap();
         }
-        ElementChild::Text(t) => {
+        vdom::Node::Text(t) => {
             parent.append_child(&document.create_text_node(t)).unwrap();
         }
     }
 }
 fn make_dom<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) -> DataAsWidget + Copy + 'static>(
     closures: &mut Vec<Closure<dyn Fn(JsValue)>>,
-    dom_refcell: &Rc<RefCell<ActualDom<Data, DataAsWidget, ToWidget>>>,
+    dom_refcell: &Rc<RefCell<Dom<Data, DataAsWidget, ToWidget>>>,
     data: &Rc<RefCell<Data>>,
     to_widget: ToWidget,
     document: &web_sys::Document,
-    vdom: &mut Element<Data>,
+    vdom: &mut vdom::Element<Data>,
 ) -> web_sys::Element {
     // TODO: handle all the errors properly (all the unwraps)
     let elem = document.create_element(vdom.type_.stringify()).unwrap();
 
     for (prop_name, prop_value) in &vdom.props {
-        Reflect::set(&elem, &prop_name.into(), prop_value).unwrap();
+        js_sys::Reflect::set(&elem, &prop_name.into(), prop_value).unwrap();
     }
 
     // empty the vdom's event listeners, but that should be fine because the only thing that this vdom is going to be used for is diffing against the next vdom, and event listeners are not compared in the update process so this one doesn't need its event listeners
@@ -115,27 +84,27 @@ fn make_dom<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&D
 
 fn update_child<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) -> DataAsWidget + Copy + 'static>(
     closures: &mut Vec<Closure<dyn Fn(JsValue)>>,
-    dom_refcell: &Rc<RefCell<ActualDom<Data, DataAsWidget, ToWidget>>>,
+    dom_refcell: &Rc<RefCell<Dom<Data, DataAsWidget, ToWidget>>>,
     data: &Rc<RefCell<Data>>,
     to_widget: ToWidget,
     document: &web_sys::Document,
     dom: web_sys::Node,
-    old_vdom: &ElementChild<Data>,
-    new_vdom: &mut ElementChild<Data>,
+    old_vdom: &vdom::Node<Data>,
+    new_vdom: &mut vdom::Node<Data>,
 ) {
     match (old_vdom, new_vdom) {
-        (ElementChild::Element(old_vdom), ElementChild::Element(new_vdom)) => {
+        (vdom::Node::Element(old_vdom), vdom::Node::Element(new_vdom)) => {
             update_dom(closures, dom_refcell, data, to_widget, document, dom.dyn_ref().expect("if both old vdom and new vdom are elements, the current dom should be element"), old_vdom, new_vdom);
         }
-        (ElementChild::Text(_), ElementChild::Text(new_text)) => {
+        (vdom::Node::Text(_), vdom::Node::Text(new_text)) => {
             dom.set_node_value(Some(new_text));
         }
-        (_, ElementChild::Text(new_text)) => {
+        (_, vdom::Node::Text(new_text)) => {
             // TODO: handle error properly
             let parent_node = dom.parent_node().expect("node should have parent");
             parent_node.replace_child(&document.create_text_node(new_text), &dom).unwrap();
         }
-        (_, ElementChild::Element(new_vdom)) => {
+        (_, vdom::Node::Element(new_vdom)) => {
             // TODO: handle error properly
             let parent_node = dom.parent_node().expect("node should have parent");
             parent_node.replace_child(&make_dom(closures, dom_refcell, data, to_widget, document, new_vdom), &dom).unwrap();
@@ -145,13 +114,13 @@ fn update_child<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: F
 // this method empties all of the new_vdom's event listeners (including ones in child nodes)
 fn update_dom<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) -> DataAsWidget + Copy + 'static>(
     closures: &mut Vec<Closure<dyn Fn(JsValue)>>,
-    dom_refcell: &Rc<RefCell<ActualDom<Data, DataAsWidget, ToWidget>>>,
+    dom_refcell: &Rc<RefCell<Dom<Data, DataAsWidget, ToWidget>>>,
     data: &Rc<RefCell<Data>>,
     to_widget: ToWidget,
     document: &web_sys::Document,
     dom: &web_sys::Element,
-    old_vdom: &Element<Data>,
-    new_vdom: &mut Element<Data>,
+    old_vdom: &vdom::Element<Data>,
+    new_vdom: &mut vdom::Element<Data>,
 ) -> web_sys::Element {
     if old_vdom.type_ != new_vdom.type_ {
         // TODO: handle error properly
@@ -164,14 +133,14 @@ fn update_dom<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(
         for old_prop_name in old_vdom.props.keys() {
             if !new_vdom.props.contains_key(old_prop_name) {
                 // TODO: deal with error properly
-                Reflect::delete_property(dom, &old_prop_name.into()).unwrap();
+                js_sys::Reflect::delete_property(dom, &old_prop_name.into()).unwrap();
             }
         }
         // set new properties
         for (new_prop_name, new_value) in &new_vdom.props {
             // TODO: deal with error properly
             // TODO: only set if value changed?
-            Reflect::set(dom, &new_prop_name.into(), new_value).unwrap();
+            js_sys::Reflect::set(dom, &new_prop_name.into(), new_value).unwrap();
         }
 
         // update children
@@ -213,7 +182,7 @@ fn update_dom<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(
 
 fn add_event_listeners<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) -> DataAsWidget + Copy + 'static>(
     closures: &mut Vec<Closure<dyn Fn(JsValue)>>,
-    dom_refcell: &Rc<RefCell<ActualDom<Data, DataAsWidget, ToWidget>>>,
+    dom_refcell: &Rc<RefCell<Dom<Data, DataAsWidget, ToWidget>>>,
     data: &Rc<RefCell<Data>>,
     to_widget: ToWidget,
     document: &web_sys::Document,

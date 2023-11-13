@@ -2,8 +2,8 @@ use std::{collections::HashMap, hash::Hash, ops::Range};
 
 use crate::{
     source::Span,
-    visualizer::{
-        dom, graphics,
+    app::{
+        vdom, graphics,
         widgets::{center::Center, expand::Expand, fixed_size::FixedSize, flex, label::Label, min_size::MinSize, Widget},
     },
 };
@@ -119,23 +119,23 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
 }
 
 impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data> for LineView<'file, GetFont> {
-    fn to_vdom(self) -> dom::Element<Data> {
+    fn to_vdom(self) -> vdom::Element<Data> {
         // TODO: showing highlights
         // TODO: showing substitutions
         // TODO: adjustable font and size
-        dom::Element {
-            type_: dom::ElementType::P,
+        vdom::Element {
+            type_: vdom::ElementType::P,
             props: HashMap::new(),
             event_listeners: Vec::new(),
-            children: vec![dom::ElementChild::Element(dom::Element {
-                type_: dom::ElementType::Code,
+            children: vec![vdom::Node::Element(vdom::Element {
+                type_: vdom::ElementType::Code,
                 props: HashMap::new(),
                 event_listeners: Vec::new(),
-                children: vec![dom::ElementChild::Element(dom::Element {
-                    type_: dom::ElementType::Pre,
+                children: vec![vdom::Node::Element(vdom::Element {
+                    type_: vdom::ElementType::Pre,
                     props: HashMap::new(),
                     event_listeners: Vec::new(),
-                    children: vec![dom::ElementChild::Text(self.contents.to_string())],
+                    children: vec![vdom::Node::Text(self.contents.to_string())],
                 })],
             })],
         }

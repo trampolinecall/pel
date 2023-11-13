@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 // TODO: REMOVE this whole widget?
 
-use crate::visualizer::{dom, graphics, widgets::Widget};
+use crate::app::{graphics, vdom, widgets::Widget};
 
 pub(crate) struct MinSize<Data, Child: Widget<Data>> {
     child: Child,
@@ -27,13 +27,13 @@ impl<Data, Child: Widget<Data>> MinSize<Data, Child> {
 }
 
 impl<Data, Child: Widget<Data>> Widget<Data> for MinSize<Data, Child> {
-    fn to_vdom(self) -> dom::Element<Data> {
-        dom::Element {
-            type_: dom::ElementType::Div,
+    fn to_vdom(self) -> vdom::Element<Data> {
+        vdom::Element {
+            type_: vdom::ElementType::Div,
             // TODO: do something about .into_iter().collect() (and remember to change it across the whole project)
             props: vec![("style".to_string(), format!("min-width: {}px; min-height: {}px;", self.min_size.x, self.min_size.y).into())].into_iter().collect(),
             event_listeners: Vec::new(),
-            children: vec![dom::ElementChild::Element(self.child.to_vdom())],
+            children: vec![vdom::Node::Element(self.child.to_vdom())],
         }
     }
 }

@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::visualizer::{dom, widgets::Widget};
+use crate::app::{widgets::Widget, vdom};
 
 pub(crate) struct Center<Data, Child: Widget<Data>> {
     child: Child,
@@ -24,13 +24,13 @@ impl<Data, Child: Widget<Data>> Center<Data, Child> {
 }
 
 impl<Data, Child: Widget<Data>> Widget<Data> for Center<Data, Child> {
-    fn to_vdom(self) -> dom::Element<Data> {
-        dom::Element {
-            type_: dom::ElementType::Div,
+    fn to_vdom(self) -> vdom::Element<Data> {
+        vdom::Element {
+            type_: vdom::ElementType::Div,
             // TODO: do something about .into_iter().collect() (and remember to change it across the whole project)
             props: vec![("style".to_string(), "width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;".into())].into_iter().collect(),
             event_listeners: Vec::new(),
-            children: vec![dom::ElementChild::Element(self.child.to_vdom())],
+            children: vec![vdom::Node::Element(self.child.to_vdom())],
         }
     }
 }

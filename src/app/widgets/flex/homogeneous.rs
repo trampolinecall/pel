@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
-use crate::visualizer::{
-    dom,
+use crate::app::{
+    vdom,
     widgets::{
         flex::{Direction, ItemSettings, _layout},
         Widget,
@@ -39,7 +39,7 @@ impl<Data, Child: Widget<Data>> Flex<Data, Child> {
 }
 
 impl<Data, Child: Widget<Data>> Widget<Data> for Flex<Data, Child> {
-    fn to_vdom(self) -> dom::Element<Data> {
+    fn to_vdom(self) -> vdom::Element<Data> {
         _layout::make_flexbox(self.direction, self.children.into_iter().map(|(settings, child)| (settings, child.to_vdom())).collect())
     }
 }

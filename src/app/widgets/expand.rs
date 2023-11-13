@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::visualizer::{dom, widgets::Widget};
+use crate::app::{vdom, widgets::Widget};
 
 pub(crate) struct Expand<Data, Child: Widget<Data>> {
     child: Child,
@@ -23,7 +23,7 @@ impl<Data, Child: Widget<Data>> Expand<Data, Child> {
 }
 
 impl<Data, Child: Widget<Data>> Widget<Data> for Expand<Data, Child> {
-    fn to_vdom(self) -> dom::Element<Data> {
+    fn to_vdom(self) -> vdom::Element<Data> {
         self.child.to_vdom() // TODO: decide if this widget is even necessary
     }
 }

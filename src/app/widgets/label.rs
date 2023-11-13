@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::visualizer::{
-    dom,
+use crate::app::{
+    vdom,
     graphics::{self, Font},
     widgets::Widget,
 };
@@ -30,9 +30,9 @@ impl<GetFont: Fn(&graphics::Fonts) -> &Font> Label<GetFont> {
 }
 
 impl<GetFont: Fn(&graphics::Fonts) -> &Font, Data> Widget<Data> for Label<GetFont> {
-    fn to_vdom(self) -> dom::Element<Data> {
+    fn to_vdom(self) -> vdom::Element<Data> {
         // TODO: font, font size
-        dom::Element { type_: dom::ElementType::P, props: HashMap::new(), event_listeners: vec![], children: vec![dom::ElementChild::Text(self.text)] }
+        vdom::Element { type_: vdom::ElementType::P, props: HashMap::new(), event_listeners: vec![], children: vec![vdom::Node::Text(self.text)] }
     }
 }
 

@@ -6,20 +6,11 @@ mod source;
 mod error;
 
 #[macro_use]
-mod visualizer;
+mod app;
 
-mod interpreter {
-    #[allow(clippy::module_inception)]
-    pub(crate) mod interpreter;
-    pub(crate) mod lang;
-    pub(crate) mod parser;
-}
-
-use std::process::ExitCode;
+mod interpreter;
 
 use wasm_bindgen::prelude::*;
-
-use crate::error::Report;
 
 #[wasm_bindgen(start)]
 pub fn main() {
@@ -85,7 +76,7 @@ while iter < 100 {
         interpreter::parser::SyntaxOptions { assign_type: interpreter::parser::AssignStatementType::Keyword, variable_decl_type: interpreter::parser::VariableDeclarationType::Keyword };
     let stmts = interpreter::parser::parse_statements(&FILE, syntax_options)?;
     let interpreter = { interpreter::interpreter::new_interpreter(stmts) };
-    visualizer::run(interpreter, interpreter::interpreter::InterpreterViewer::view);
+    app::run(interpreter, interpreter::interpreter::InterpreterViewer::view);
 
     Ok(())
 }

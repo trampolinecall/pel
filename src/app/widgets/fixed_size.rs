@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::visualizer::{dom, graphics, widgets::Widget};
+use crate::app::{vdom, graphics, widgets::Widget};
 
 // TODO: REMOVE this module?
 
@@ -18,13 +18,13 @@ impl<Data, Child: Widget<Data>> FixedSize<Data, Child> {
 }
 
 impl<Data, Child: Widget<Data>> Widget<Data> for FixedSize<Data, Child> {
-    fn to_vdom(self) -> dom::Element<Data> {
-        dom::Element {
-            type_: dom::ElementType::Div,
+    fn to_vdom(self) -> vdom::Element<Data> {
+        vdom::Element {
+            type_: vdom::ElementType::Div,
             // TODO: do something about .into_iter().collect() (and remember to change it across the whole project)
             props: vec![("style".to_string(), format!("width: {}px; height: {}px;", self.size.x, self.size.y).into())].into_iter().collect(),
             event_listeners: Vec::new(),
-            children: vec![dom::ElementChild::Element(self.child.to_vdom())],
+            children: vec![vdom::Node::Element(self.child.to_vdom())],
         }
     }
 }
