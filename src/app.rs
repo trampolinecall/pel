@@ -17,5 +17,5 @@ pub(crate) fn run<Model: 'static, ModelAsWidget: Widget<Model> + 'static>(model:
     let document = web_sys::window().expect("no global window").document().expect("no document on window");
     let app_div = document.get_element_by_id("app").expect("no div with id 'app'");
 
-    let dom = dom::Dom::new(&model, &document, &app_div, model_to_widget);
+    let dom = dom::Dom::new(&model, document, &app_div, model_to_widget);
 }
