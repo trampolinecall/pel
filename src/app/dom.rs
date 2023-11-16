@@ -6,26 +6,28 @@ use web_sys::js_sys;
 use crate::app::{vdom, widgets::Widget};
 
 // the vdom but with wasm Closures instead of rust Box<dyn Fn(...)>
-mod vdom_with_closures {
+// TODO: make this not pub(super)
+pub(super) mod vdom_with_closures {
     use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
     use wasm_bindgen::{prelude::Closure, JsValue};
 
-    use crate::app::{dom::Dom, vdom, widgets::Widget};
+    use crate::app::{dom::Dom, vdom, widgets::Widget, App};
 
-    pub(super) struct Element {
+    pub(in super::super) struct Element {
         pub(crate) type_: vdom::ElementType,
         pub(crate) props: HashMap<String, JsValue>, // TODO: make this &'static str instead of String?
         pub(crate) event_listeners: Vec<(&'static str, Closure<dyn Fn(JsValue)>)>,
         pub(crate) children: Vec<Node>,
     }
-    pub(super) enum Node {
+    pub(in super::super) enum Node {
         Element(Element),
         Text(String),
     }
 
     impl Element {
-        pub(super) fn from_normal_vdom<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) -> DataAsWidget + Copy + 'static>(
+        pub(in super::super) fn from_normal_vdom<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) -> DataAsWidget + Copy + 'static>(
+            run_update: impl Fn(JsValue, &dyn Fn(JsValue, &mut Data)) + Clone + 'static,
             dom_refcell: &Rc<RefCell<Dom>>,
             data_refcell: &Rc<RefCell<Data>>,
             other_elem: vdom::Element<Data>,
@@ -41,28 +43,31 @@ mod vdom_with_closures {
                         (
                             event,
                             Closure::<dyn Fn(JsValue)>::new({
-                                let data_refcell = Rc::clone(data_refcell);
-                                let dom_refcell = Rc::clone(dom_refcell);
-                                move |event| {
-                                    event_listener(event, &mut data_refcell.borrow_mut());
-                                    let new_vdom = Element::from_normal_vdom(&dom_refcell, &data_refcell, to_widget(&data_refcell.borrow()).to_vdom(), to_widget);
-                                    dom_refcell.borrow_mut().update(&dom_refcell, &data_refcell, new_vdom, to_widget);
-                                }
+                                let run_update = run_update.clone();
+                                move |event| run_update(event, &event_listener)
                             }),
                         )
                     })
                     .collect(),
-                children: other_elem.children.into_iter().map(|other_child| Element::convert_node(dom_refcell, data_refcell, other_child, to_widget)).collect(),
+                children: other_elem
+                    .children
+                    .into_iter()
+                    .map(|other_child| {
+                        let run_update = run_update.clone();
+                        Element::convert_node(run_update, dom_refcell, data_refcell, other_child, to_widget)
+                    })
+                    .collect(),
             }
         }
         fn convert_node<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Copy + Fn(&Data) -> DataAsWidget + 'static>(
+            run_update: impl Fn(JsValue, &dyn Fn(JsValue, &mut Data)) + Clone + 'static,
             dom_refcell: &Rc<RefCell<Dom>>,
             data_refcell: &Rc<RefCell<Data>>,
             other_node: vdom::Node<Data>,
             to_widget: ToWidget,
         ) -> Node {
             match other_node {
-                vdom::Node::Element(e) => Node::Element(Element::from_normal_vdom(dom_refcell, data_refcell, e, to_widget)),
+                vdom::Node::Element(e) => Node::Element(Element::from_normal_vdom(run_update, dom_refcell, data_refcell, e, to_widget)),
                 vdom::Node::Text(t) => Node::Text(t),
             }
         }
@@ -78,9 +83,9 @@ pub(crate) struct Dom {
 
 // TODO: clean up this whole module
 // (especially clean up lifetimes because this seems like it would leak in ways i dont want)
-
 impl Dom {
-    fn new_empty(document: web_sys::Document, parent: &web_sys::Node) -> Dom {
+    // TODO: do not expose this?
+    pub(crate) fn new_empty(document: web_sys::Document, parent: &web_sys::Node) -> Dom {
         let vdom = vdom_with_closures::Element { type_: vdom::ElementType::Div, props: HashMap::new(), event_listeners: Vec::new(), children: Vec::new() };
         let dom = document.create_element(vdom::ElementType::Div.stringify()).unwrap(); // TODO: handle errors properly
         parent.append_child(&dom).unwrap(); // TODO: handle this error properly
@@ -88,18 +93,19 @@ impl Dom {
     }
 
     pub(crate) fn new<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) -> DataAsWidget + Copy + 'static>(
+        run_update: impl Fn(JsValue, &dyn Fn(JsValue, &mut Data)) + Copy + 'static,
         data: &Rc<RefCell<Data>>,
         document: web_sys::Document,
         parent: &web_sys::Node,
         to_widget: ToWidget,
     ) -> Rc<RefCell<Dom>> {
         let dom = Rc::new(RefCell::new(Self::new_empty(document, parent)));
-        let vdom = vdom_with_closures::Element::from_normal_vdom(&dom, data, to_widget(&data.borrow()).to_vdom(), to_widget);
+        let vdom = vdom_with_closures::Element::from_normal_vdom(run_update, &dom, data, to_widget(&data.borrow()).to_vdom(), to_widget);
         dom.borrow_mut().update(&dom, data, vdom, to_widget);
         dom
     }
 
-    fn update<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) -> DataAsWidget + Copy + 'static>(
+    pub(super) fn update<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) -> DataAsWidget + Copy + 'static>(
         &mut self,
         dom_refcell: &Rc<RefCell<Dom>>,
         data: &Rc<RefCell<Data>>,
