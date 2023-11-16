@@ -44,12 +44,9 @@ impl<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) ->
                 let app_refcell = Rc::clone(app_refcell);
                 move |event, update_closure| App::run_update(&app_refcell, event, update_closure)
             },
-            &app.dom,
-            &app.data,
             (app.to_widget)(&app.data.borrow()).to_vdom(),
-            app.to_widget,
         );
-        app.dom.borrow_mut().update(&app.dom, &app.data, vdom, app.to_widget);
+        app.dom.borrow_mut().update(vdom);
     }
 }
 
