@@ -21,8 +21,6 @@ struct App<Data, DataAsWidget: Widget<Data>, ToWidget: Fn(&Data) -> DataAsWidget
 
 impl<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) -> DataAsWidget + Copy + 'static> App<Data, DataAsWidget, ToWidget> {
     fn run(data: Data, to_widget: ToWidget) {
-        let data = data;
-
         let document = web_sys::window().expect("no global window").document().expect("no document on window");
         let app_div = document.get_element_by_id("app").expect("no div with id 'app'");
 
@@ -39,14 +37,11 @@ impl<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) ->
     }
     fn update_dom(app_refcell: &Rc<RefCell<Self>>) {
         let mut app = app_refcell.borrow_mut();
-        let vdom = dom::vdom_with_closures::Element::from_normal_vdom(
-            {
-                let app_refcell = Rc::clone(app_refcell);
-                move |event, update_closure| App::run_update(&app_refcell, event, update_closure)
-            },
-            (app.to_widget)(&app.data).to_vdom(),
-        );
-        app.dom.update(vdom);
+        let vdom = (app.to_widget)(&app.data).to_vdom();
+        app.dom.update(vdom, {
+            let app_refcell = Rc::clone(app_refcell);
+            move |event, update_closure| App::run_update(&app_refcell, event, update_closure)
+        });
     }
 }
 

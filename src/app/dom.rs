@@ -1,32 +1,31 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::collections::HashMap;
 
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
 use web_sys::js_sys;
 
-use crate::app::{vdom, widgets::Widget};
+use crate::app::vdom;
 
 // the vdom but with wasm Closures instead of rust Box<dyn Fn(...)>
-// TODO: make this not pub(super)
-pub(super) mod vdom_with_closures {
+pub mod vdom_with_closures {
     use std::collections::HashMap;
 
     use wasm_bindgen::{prelude::Closure, JsValue};
 
     use crate::app::vdom;
 
-    pub(in super::super) struct Element {
+    pub(super) struct Element {
         pub(crate) type_: vdom::ElementType,
         pub(crate) props: HashMap<String, JsValue>, // TODO: make this &'static str instead of String?
         pub(crate) event_listeners: Vec<(&'static str, Closure<dyn Fn(JsValue)>)>,
         pub(crate) children: Vec<Node>,
     }
-    pub(in super::super) enum Node {
+    pub(super) enum Node {
         Element(Element),
         Text(String),
     }
 
     impl Element {
-        pub(in super::super) fn from_normal_vdom<Data: 'static>(run_update: impl Fn(JsValue, &dyn Fn(JsValue, &mut Data)) + Clone + 'static, other_elem: vdom::Element<Data>) -> Element {
+        pub(super) fn from_normal_vdom<Data: 'static>(run_update: impl Fn(JsValue, &dyn Fn(JsValue, &mut Data)) + Clone + 'static, other_elem: vdom::Element<Data>) -> Element {
             Element {
                 type_: other_elem.type_,
                 props: other_elem.props,
@@ -72,7 +71,6 @@ pub(crate) struct Dom {
 // TODO: clean up this whole module
 // (especially clean up lifetimes because this seems like it would leak in ways i dont want)
 impl Dom {
-    // TODO: do not expose this?
     pub(crate) fn new_empty(document: web_sys::Document, parent: &web_sys::Node) -> Dom {
         let vdom = vdom_with_closures::Element { type_: vdom::ElementType::Div, props: HashMap::new(), event_listeners: Vec::new(), children: Vec::new() };
         let dom = document.create_element(vdom::ElementType::Div.stringify()).unwrap(); // TODO: handle errors properly
@@ -80,20 +78,8 @@ impl Dom {
         Dom { dom, document, vdom }
     }
 
-    pub(crate) fn new<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) -> DataAsWidget + Copy + 'static>(
-        run_update: impl Fn(JsValue, &dyn Fn(JsValue, &mut Data)) + Copy + 'static,
-        data: &Rc<RefCell<Data>>,
-        document: web_sys::Document,
-        parent: &web_sys::Node,
-        to_widget: ToWidget,
-    ) -> Dom {
-        let vdom = vdom_with_closures::Element::from_normal_vdom(run_update, to_widget(&data.borrow()).to_vdom());
-        let mut dom = Self::new_empty(document, parent);
-        dom.update(vdom);
-        dom
-    }
-
-    pub(super) fn update(&mut self, mut new_vdom: vdom_with_closures::Element) {
+    pub(crate) fn update<Data: 'static>(&mut self, new_vdom: vdom::Element<Data>, run_update: impl Fn(JsValue, &dyn Fn(JsValue, &mut Data)) + Clone + 'static) {
+        let mut new_vdom = vdom_with_closures::Element::from_normal_vdom(run_update, new_vdom);
         self.dom = Self::update_dom(&self.document, &self.dom, &self.vdom, &mut new_vdom);
         self.vdom = new_vdom;
     }
