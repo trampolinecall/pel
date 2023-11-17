@@ -73,8 +73,8 @@ while iter < 100 {
     }
 
     let stmts = interpreter::parser::parse_statements(&FILE)?;
-    let interpreter = { interpreter::interpreter::new_interpreter(stmts) };
-    app::run(interpreter, interpreter::interpreter::InterpreterViewer::view);
+    let interpreter = interpreter::interpreter::new_interpreter(stmts);
+    app::run(interpreter, interpreter::interpreter::Interpreter::view);
 
     Ok(())
 }

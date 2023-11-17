@@ -320,24 +320,13 @@ async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(
             })
             .await;
             match op {
-                BinaryOp::Equal => {
-                    comparison!(==)
-                }
-                BinaryOp::NotEqual => {
-                    comparison!(!=)
-                }
-                BinaryOp::Greater => {
-                    comparison!(>)
-                }
-                BinaryOp::GreaterEqual => {
-                    comparison!(>=)
-                }
-                BinaryOp::Less => {
-                    comparison!(<)
-                }
-                BinaryOp::LessEqual => {
-                    comparison!(<=)
-                }
+                BinaryOp::Equal => comparison!(==),
+                BinaryOp::NotEqual => comparison!(!=),
+                BinaryOp::Greater => comparison!(>),
+                BinaryOp::GreaterEqual => comparison!(>=),
+                BinaryOp::Less => comparison!(<),
+                BinaryOp::LessEqual => comparison!(<=),
+
                 BinaryOp::Add => match (left, right) {
                     (Value::Int(i1), Value::Int(i2)) => Ok(Value::Int(i1 + i2)),
                     (Value::Float(f1), Value::Float(f2)) => Ok(Value::Float(f1 + f2)),
@@ -373,7 +362,7 @@ async fn interpret_expr<'file: 'async_recursion, 'parent, 'parents>(
                 msg: format!("evaluate operation '{}'", operator),
                 primary_highlight: operator_span,
                 secondary_highlights: Vec::new(),
-                substitutions: add_substitution(&substitutions, (operand_span, ReprValue(&operand))),
+                substitutions: add_substitution(substitutions, (operand_span, ReprValue(&operand))),
                 state: state.clone(),
             })
             .await;

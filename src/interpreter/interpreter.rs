@@ -15,9 +15,8 @@ use crate::{
     },
 };
 
-pub(crate) struct InterpreterViewer<'file, F: Future<Output = Result<(), RuntimeError<'file>>>> {
-    state: InterpreterViewState<'file>,
-
+pub(crate) struct Interpreter<'file, F: Future<Output = Result<(), RuntimeError<'file>>>> {
+    last_yield: InterpreterViewState<'file>,
     generator: Gen<InterpretYield<'file>, (), F>,
 }
 enum InterpreterViewState<'file> {
@@ -26,14 +25,14 @@ enum InterpreterViewState<'file> {
     Finished { result: Result<(), RuntimeError<'file>> },
 }
 
-pub(crate) fn new_interpreter(stmts: Vec<Stmt>) -> InterpreterViewer<impl Future<Output = Result<(), RuntimeError>>> {
+pub(crate) fn new_interpreter(stmts: Vec<Stmt>) -> Interpreter<impl Future<Output = Result<(), RuntimeError>>> {
     let gen = Gen::new(move |co| interpreter::interpret(stmts, co));
-    InterpreterViewer { state: InterpreterViewState::NotStarted, generator: gen }
+    Interpreter { last_yield: InterpreterViewState::NotStarted, generator: gen }
 }
-impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> InterpreterViewer<'file, F> {
-    pub(crate) fn view(&self) -> impl Widget<InterpreterViewer<'file, F>> {
+impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpreter<'file, F> {
+    pub(crate) fn view(&self) -> impl Widget<Interpreter<'file, F>> {
         let make_message = |message| Either::new_left(Label::new(message, "sans-serif".to_string(), 15));
-        let widget = match &self.state {
+        let widget = match &self.last_yield {
             InterpreterViewState::NotStarted => make_message("interpreter not started".to_string()),
             InterpreterViewState::AboutToExecute(InterpretYield { msg, primary_highlight, secondary_highlights, substitutions, state }) => {
                 // TODO: hashmap does not preserve order that variables are created
@@ -67,10 +66,10 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
     }
 
     fn step(&mut self) {
-        match self.state {
+        match self.last_yield {
             InterpreterViewState::NotStarted | InterpreterViewState::AboutToExecute { .. } => match self.generator.resume() {
-                genawaiter::GeneratorState::Yielded(step) => self.state = InterpreterViewState::AboutToExecute(step),
-                genawaiter::GeneratorState::Complete(res) => self.state = InterpreterViewState::Finished { result: res },
+                genawaiter::GeneratorState::Yielded(step) => self.last_yield = InterpreterViewState::AboutToExecute(step),
+                genawaiter::GeneratorState::Complete(res) => self.last_yield = InterpreterViewState::Finished { result: res },
             },
 
             InterpreterViewState::Finished { result: _, .. } => {}
