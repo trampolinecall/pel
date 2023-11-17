@@ -22,7 +22,7 @@ struct App<Data, DataAsWidget: Widget<Data>, ToWidget: Fn(&Data) -> DataAsWidget
 impl<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) -> DataAsWidget + Copy + 'static> App<Data, DataAsWidget, ToWidget> {
     fn run(data: Data, to_widget: ToWidget) {
         let document = web_sys::window().expect("no global window").document().expect("no document on window");
-        let app_div = document.get_element_by_id("app").expect("no div with id 'app'");
+        let app_div = document.get_element_by_id("app").expect("no element with id 'app'");
 
         let dom = dom::Dom::new_empty(document, &app_div);
 
