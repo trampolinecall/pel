@@ -14,7 +14,7 @@ pub(crate) struct Dom {
 struct Element {
     dom_element: web_sys::Element,
     type_: vdom::ElementType,
-    props: HashMap<&'static str, JsValue>, // TODO: make this &'static str instead of String?
+    props: HashMap<&'static str, JsValue>,
     event_listeners: Vec<(&'static str, Closure<dyn Fn(JsValue)>)>,
     children: Vec<Node>,
 }
