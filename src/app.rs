@@ -20,17 +20,6 @@ struct App<Data, DataAsWidget: Widget<Data>, ToWidget: Fn(&Data) -> DataAsWidget
 }
 
 impl<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) -> DataAsWidget + Copy + 'static> App<Data, DataAsWidget, ToWidget> {
-    fn run(data: Data, to_widget: ToWidget) {
-        let document = web_sys::window().expect("no global window").document().expect("no document on window");
-        let app_div = document.get_element_by_id("app").expect("no element with id 'app'");
-
-        let dom = dom::Dom::new_empty(document, &app_div);
-
-        let app = Rc::new(RefCell::new(App { data, dom, to_widget }));
-
-        App::update_dom(&app);
-    }
-
     fn run_update(app_refcell: &Rc<RefCell<Self>>, event: JsValue, closure: &dyn Fn(JsValue, &mut Data)) {
         closure(event, &mut app_refcell.borrow_mut().data);
         App::update_dom(app_refcell);
@@ -46,5 +35,12 @@ impl<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) ->
 }
 
 pub(crate) fn run<Data: 'static, DataAsWidget: Widget<Data> + 'static>(data: Data, to_widget: impl Fn(&Data) -> DataAsWidget + Copy + 'static) {
-    App::run(data, to_widget);
+    let document = web_sys::window().expect("no global window").document().expect("no document on window");
+    let app_div = document.get_element_by_id("app").expect("no element with id 'app'");
+
+    let dom = dom::Dom::new_empty(document, &app_div);
+
+    let app = Rc::new(RefCell::new(App { data, dom, to_widget }));
+
+    App::update_dom(&app);
 }
