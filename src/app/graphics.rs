@@ -1,10 +1,6 @@
 // TODO: REMOVE this module (these are temporary replacements for the sfml structs while i figure out how everything is supposed to work)
 // graphics utilities
 
-pub(crate) struct GraphicsContext {
-    pub(crate) fonts: Fonts,
-}
-
 #[derive(Copy, Clone, PartialEq)]
 pub(crate) struct Vector2f {
     pub(crate) x: f32,
@@ -14,25 +10,6 @@ pub(crate) struct Vector2f {
 impl Vector2f {
     pub(crate) fn new(x: f32, y: f32) -> Self {
         Self { x, y }
-    }
-}
-
-pub(crate) struct Fonts {
-    pub(crate) text_font: Font,
-    pub(crate) monospace_font: Font,
-}
-pub(crate) enum Font {
-    Text,
-    Monospace,
-}
-
-impl Fonts {
-    pub(crate) fn text_font(&self) -> &Font {
-        &self.text_font
-    }
-
-    pub(crate) fn monospace_font(&self) -> &Font {
-        &self.monospace_font
     }
 }
 
@@ -52,7 +29,7 @@ impl Color {
         Self { r, g, b, a: 255 }
     }
 
-    pub(crate) fn to_css_color(&self) -> String {
+    pub(crate) fn to_css_color(self) -> String {
         format!("rgba({}, {}, {}, {})", self.r, self.g, self.b, self.a)
     }
 }

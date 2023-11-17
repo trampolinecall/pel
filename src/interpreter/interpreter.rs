@@ -6,7 +6,7 @@ use genawaiter::sync::Gen;
 
 use crate::{
     app::{
-        graphics::{self, Color, Fonts, Key},
+        graphics::{self, Color, Key},
         widgets::{code_view::code_view, either::Either, flex, label::Label, min_size::MinSize, padding::Padding, responds_to_keyboard::RespondsToKeyboard, Widget},
     },
     interpreter::{
@@ -32,7 +32,7 @@ pub(crate) fn new_interpreter(stmts: Vec<Stmt>) -> InterpreterViewer<impl Future
 }
 impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> InterpreterViewer<'file, F> {
     pub(crate) fn view(&self) -> impl Widget<InterpreterViewer<'file, F>> {
-        let make_message = |message| Either::new_left(Label::new(message, Fonts::text_font, 15));
+        let make_message = |message| Either::new_left(Label::new(message, "sans-serif".to_string(), 15));
         let widget = match &self.state {
             InterpreterViewState::NotStarted => make_message("interpreter not started".to_string()),
             InterpreterViewState::AboutToExecute(InterpretYield { msg, primary_highlight, secondary_highlights, substitutions, state }) => {
@@ -44,22 +44,22 @@ impl<'file, F: Future<Output = Result<(), RuntimeError<'file>>> + 'file> Interpr
                     code_view: (
                         flex::ItemSettings::Flex(0.3),
                         Padding::all_around(
-                            code_view((*primary_highlight, Color::rgb(50, 100, 50)), secondary_highlights.clone(), substitutions.clone(), Fonts::text_font, 15, Fonts::monospace_font, 15),
+                            code_view((*primary_highlight, Color::rgb(50, 100, 50)), secondary_highlights.clone(), substitutions.clone(), "sans-serif".to_string(), 15, "monospace".to_string(), 15),
                             5.0
                         )
                     ), // TODO: pick better colors
-                    program_output: (flex::ItemSettings::Flex(0.3), Padding::all_around(Label::new(state.program_output.clone(), Fonts::monospace_font, 15), 5.0)), // TODO: scrolling, min size, fixed size?, scroll to bottom automatically
+                    program_output: (flex::ItemSettings::Flex(0.3), Padding::all_around(Label::new(state.program_output.clone(), "monospace".to_string(), 15), 5.0)), // TODO: scrolling, min size, fixed size?, scroll to bottom automatically
                     env_view: (flex::ItemSettings::Flex(0.2), Padding::all_around(view_env(&state.env), 5.0)),
-                    msg: (flex::ItemSettings::Flex(0.2), Padding::all_around(Label::new(format!("running\n{msg}"), Fonts::text_font, 15), 5.0)),
+                    msg: (flex::ItemSettings::Flex(0.2), Padding::all_around(Label::new(format!("running\n{msg}"), "sans-serif".to_string(), 15), 5.0)),
                 })))
             }
             InterpreterViewState::Finished { result: Ok(()) } => make_message("interpreter finished successfully".to_string()),
             InterpreterViewState::Finished { result: Err(err) } => Either::new_right(Either::new_left(flex!(horizontal {
                 code_view: (
                     flex::ItemSettings::Flex(0.3),
-                    Padding::all_around(code_view((err.span, Color::rgb(150, 0, 0)), Vec::new(), Vec::new(), Fonts::text_font, 15, Fonts::monospace_font, 15), 5.0)
+                    Padding::all_around(code_view((err.span, Color::rgb(150, 0, 0)), Vec::new(), Vec::new(), "sans-serif".to_string(), 15, "monospace".to_string(), 15), 5.0)
                 ),
-                msg: (flex::ItemSettings::Flex(0.3), Padding::all_around(Label::new(format!("interpreter had error: {}", err.kind), Fonts::text_font, 15), 5.0)),
+                msg: (flex::ItemSettings::Flex(0.3), Padding::all_around(Label::new(format!("interpreter had error: {}", err.kind), "sans-serif".to_string(), 15), 5.0)),
             }))),
         };
 
@@ -93,7 +93,7 @@ fn view_env<Data>(env: &interpreter::Vars) -> impl Widget<Data> {
                             flex!(horizontal {
                                 name: (
                                     flex::ItemSettings::Flex(0.5),
-                                    Padding::new(MinSize::new(Label::new(var_name.to_string(), Fonts::text_font, 15), graphics::Vector2f::new(50.0, 0.0)), 10.0, 5.0, 10.0, 5.0)
+                                    Padding::new(MinSize::new(Label::new(var_name.to_string(), "sans-serif".to_string(), 15), graphics::Vector2f::new(50.0, 0.0)), 10.0, 5.0, 10.0, 5.0)
                                 ),
 
                                 value: (
@@ -105,7 +105,7 @@ fn view_env<Data>(env: &interpreter::Vars) -> impl Widget<Data> {
                                                     Some(value) => ReprValue(value).to_string(),
                                                     None => "<uninitialized>".to_string(),
                                                 },
-                                                Fonts::text_font,
+                                                "sans-serif".to_string(),
                                                 15,
                                             ),
                                             graphics::Vector2f::new(50.0, 0.0)

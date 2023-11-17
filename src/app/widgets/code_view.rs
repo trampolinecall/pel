@@ -10,11 +10,11 @@ use crate::{
 
 const SHRINK_SCALE_FACTOR: f32 = 0.8; // TODO: put this in a better place
 
-pub(crate) struct LineView<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font> {
+pub(crate) struct LineView<'file> {
     contents: &'file str,
     highlights: Vec<LineHighlight>,
     substitutions: Vec<(Range<usize>, Option<String>)>,
-    get_font: GetFont,
+    font: String, // TODO: custom Font type?
     font_size: u32,
 }
 
@@ -43,7 +43,7 @@ pub(crate) struct LineViewRenderObject<'file, GetFont: Fn(&graphics::Fonts) -> &
     substitutions: HashMap<(Range<usize>, String), Animated<bool>>,
     highlights: HashMap<LineHighlight, Animated<HighlightShownAmount>>,
     size: graphics::Vector2f,
-    get_font: GetFont,
+    get_font: String,
     font_size: u32,
     _private: (),
 }
@@ -52,13 +52,13 @@ pub(crate) struct LineViewRenderObject<'file, GetFont: Fn(&graphics::Fonts) -> &
 // TODO: messages
 // TODO: scrolling
 // TODO: syntax highlighting
-pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font + Copy + 'file, LineNrFont: Fn(&graphics::Fonts) -> &graphics::Font + Copy + 'file, Data: 'file>(
+pub(crate) fn code_view<'file, Data: 'file>(
     primary_highlight: (Span<'file>, graphics::Color),
     secondary_highlights: impl IntoIterator<Item = (Span<'file>, graphics::Color)>,
     substitutions: impl IntoIterator<Item = (Span<'file>, String)>,
-    line_nr_font: LineNrFont,
+    line_nr_font: String,
     line_nr_font_size: u32,
-    code_font: CodeFont,
+    code_font: String,
     code_font_size: u32,
 ) -> impl Widget<Data> + 'file {
     let secondary_highlights: Vec<_> = secondary_highlights.into_iter().collect();
@@ -101,13 +101,13 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
                     flex!(horizontal {
                         line_number: (
                             flex::ItemSettings::Fixed,
-                            FixedSize::new(Center::new(Label::new((line_number + 1).to_string(), line_nr_font, line_nr_font_size)), graphics::Vector2f::new(20.0, 20.0))
+                            FixedSize::new(Center::new(Label::new((line_number + 1).to_string(), line_nr_font.clone(), line_nr_font_size)), graphics::Vector2f::new(20.0, 20.0))
                         ), // TODO: also don't hardcode this size, also TODO: line numbers should really be right aligned, not centered
 
                         line_view: (
                             flex::ItemSettings::Flex(1.0),
                             MinSize::new(
-                                LineView { contents: line_contents, highlights: highlights_on_line, get_font: code_font, font_size: code_font_size, substitutions: substitutions_on_line },
+                                LineView { contents: line_contents, highlights: highlights_on_line, font: code_font.clone(), font_size: code_font_size, substitutions: substitutions_on_line },
                                 graphics::Vector2f::new(0.0, 20.0), // TODO: don't hardcode minimum height
                             )
                         ),
@@ -118,7 +118,7 @@ pub(crate) fn code_view<'file, CodeFont: Fn(&graphics::Fonts) -> &graphics::Font
     ))
 }
 
-impl<'file, GetFont: Fn(&graphics::Fonts) -> &graphics::Font, Data> Widget<Data> for LineView<'file, GetFont> {
+impl<'file, Data> Widget<Data> for LineView<'file> {
     fn to_vdom(self) -> vdom::Element<Data> {
         // TODO: showing highlights
         // TODO: showing substitutions

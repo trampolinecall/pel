@@ -1,15 +1,11 @@
 use std::collections::HashMap;
 
-use crate::app::{
-    graphics::{self, Font},
-    vdom,
-    widgets::Widget,
-};
+use crate::app::{vdom, widgets::Widget};
 
 // ideally this would just have a reference to the Font object but rust doenst support higher kinded type parameters so i couldnt get it to work
-pub(crate) struct Label<GetFont: Fn(&graphics::Fonts) -> &Font> {
+pub(crate) struct Label {
     text: String,
-    get_font: GetFont,
+    font: String,
     font_size: u32,
 }
 /* TODO: REMOVE
@@ -23,13 +19,13 @@ pub(crate) struct LabelRenderObject<GetFont: Fn(&graphics::Fonts) -> &Font> {
 }
 */
 
-impl<GetFont: Fn(&graphics::Fonts) -> &Font> Label<GetFont> {
-    pub(crate) fn new(text: String, get_font: GetFont, font_size: u32) -> Label<GetFont> {
-        Label { text, get_font, font_size }
+impl Label {
+    pub(crate) fn new(text: String, font: String, font_size: u32) -> Label {
+        Label { text, font, font_size }
     }
 }
 
-impl<GetFont: Fn(&graphics::Fonts) -> &Font, Data> Widget<Data> for Label<GetFont> {
+impl<Data> Widget<Data> for Label {
     fn to_vdom(self) -> vdom::Element<Data> {
         // TODO: font, font size
         vdom::Element { type_: vdom::ElementType::P, props: HashMap::new(), event_listeners: vec![], children: vec![vdom::Node::Text(self.text)] }
