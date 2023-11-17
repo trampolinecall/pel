@@ -40,7 +40,7 @@ impl<Data: 'static, DataAsWidget: Widget<Data> + 'static, ToWidget: Fn(&Data) ->
         let vdom = (app.to_widget)(&app.data).to_vdom();
         app.dom.update(vdom, {
             let app_refcell = Rc::clone(app_refcell);
-            move |event, update_closure| App::run_update(&app_refcell, event, update_closure)
+            &move |event, update_closure| App::run_update(&app_refcell, event, update_closure)
         });
     }
 }
