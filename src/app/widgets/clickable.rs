@@ -2,12 +2,14 @@ use std::marker::PhantomData;
 
 // TODO: REMOVE this whole module (let dom handle click events)
 
+use wasm_bindgen::JsCast;
+
 use crate::app::{vdom, widgets::Widget};
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub(crate) enum MouseButton {
-    Left,
-    Right,
+    Main,
+    Secondary,
 }
 pub(crate) struct Clickable<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> {
     mouse_button: MouseButton,
@@ -38,11 +40,21 @@ impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> Clickable<Data, Child, 
     }
 }
 
-// TODO: is + 'static really supposed to be there?
 impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data) + 'static> Widget<Data> for Clickable<Data, Child, Callback> {
     fn to_vdom(self) -> vdom::Element<Data> {
         let mut child = self.child.to_vdom();
-        child.event_listeners.push(("click", Box::new(move |_, data| (self.on_click)(data))));
+        let button_number_looking_for = match self.mouse_button {
+            MouseButton::Main => 0,
+            MouseButton::Secondary => 2,
+        };
+        child.event_listeners.push((
+            "click",
+            Box::new(move |event, data| {
+                if event.dyn_ref::<web_sys::PointerEvent>().expect("click event received data that is not PointerEvent").button() == button_number_looking_for {
+                    (self.on_click)(data);
+                }
+            }),
+        ));
         child
     }
 }

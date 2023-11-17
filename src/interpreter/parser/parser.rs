@@ -1,7 +1,7 @@
 use crate::{
     error::ErrorReportedPromise,
     interpreter::parser::{lexer::Lexer, token::Token},
-    source::{Located, Span},
+    source::Located,
 };
 
 pub(super) struct Parser<'file> {
@@ -50,9 +50,5 @@ impl<'file> Parser<'file> {
         } else {
             None
         }
-    }
-
-    pub(crate) fn peek_span(&mut self) -> Span<'file> {
-        self.peek().0
     }
 }

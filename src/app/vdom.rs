@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use wasm_bindgen::JsValue;
 
-// TODO: it seems a bit strange to have the Data parameter here; figure out a better way?
 pub(crate) struct Element<Data: ?Sized> {
     pub(crate) type_: ElementType,
     pub(crate) props: HashMap<&'static str, JsValue>,
