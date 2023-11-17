@@ -31,7 +31,7 @@ impl<Data, Child: Widget<Data>> Widget<Data> for MaxSize<Data, Child> {
         vdom::Element {
             type_: vdom::ElementType::Div,
             // TODO: do something about .into_iter().collect() (and remember to change it across the whole project)
-            props: vec![("style".to_string(), format!("max-width: {}px; max-height: {}px;", self.max_size.x, self.max_size.y).into())].into_iter().collect(),
+            props: vec![("style", format!("max-width: {}px; max-height: {}px;", self.max_size.x, self.max_size.y).into())].into_iter().collect(),
             event_listeners: Vec::new(),
             children: vec![vdom::Node::Element(self.child.to_vdom())],
         }

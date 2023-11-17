@@ -31,7 +31,7 @@ impl<Data, Child: Widget<Data>> Widget<Data> for MinSize<Data, Child> {
         vdom::Element {
             type_: vdom::ElementType::Div,
             // TODO: do something about .into_iter().collect() (and remember to change it across the whole project)
-            props: vec![("style".to_string(), format!("min-width: {}px; min-height: {}px;", self.min_size.x, self.min_size.y).into())].into_iter().collect(),
+            props: vec![("style", format!("min-width: {}px; min-height: {}px;", self.min_size.x, self.min_size.y).into())].into_iter().collect(),
             event_listeners: Vec::new(),
             children: vec![vdom::Node::Element(self.child.to_vdom())],
         }

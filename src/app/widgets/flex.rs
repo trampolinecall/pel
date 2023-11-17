@@ -14,7 +14,7 @@ pub(crate) mod _layout {
         vdom::Element {
             type_: vdom::ElementType::Div,
             props: std::iter::once((
-                "style".to_string(),
+                "style",
                 format!(
                     "display: flex; flex-direction: {};",
                     match direction {
@@ -34,7 +34,7 @@ pub(crate) mod _layout {
                 .into_iter()
                 .map(|(settings, mut child)| {
                     if !child.props.contains_key("style") {
-                        child.props.insert("style".to_string(), "".into());
+                        child.props.insert("style", "".into());
                     }
                     let style_value = child.props.get_mut("style").expect("style property should exist after being created");
                     let flex_proportion = match settings {

@@ -34,7 +34,7 @@ impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> RespondsToKeyboard<Data
 impl<Data, Child: Widget<Data>, Callback: Fn(&mut Data)> Widget<Data> for RespondsToKeyboard<Data, Child, Callback> {
     fn to_vdom(self) -> vdom::Element<Data> {
         let mut child = self.child.to_vdom();
-        let old_tab_index = child.props.insert("tabIndex".to_string(), 0.into());
+        let old_tab_index = child.props.insert("tabIndex", 0.into());
         assert!(old_tab_index.is_none()); // TODO: figure out what should actually happen
         child.event_listeners.push(("keyup", {
             let checking = match self.key {

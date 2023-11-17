@@ -14,7 +14,7 @@ pub(crate) struct Dom {
 struct Element {
     dom_element: web_sys::Element,
     type_: vdom::ElementType,
-    props: HashMap<String, JsValue>, // TODO: make this &'static str instead of String?
+    props: HashMap<&'static str, JsValue>, // TODO: make this &'static str instead of String?
     event_listeners: Vec<(&'static str, Closure<dyn Fn(JsValue)>)>,
     children: Vec<Node>,
 }
@@ -41,7 +41,7 @@ impl Element {
         let dom_element = document.create_element(vdom.type_.stringify()).unwrap();
 
         for (prop_name, prop_value) in &vdom.props {
-            js_sys::Reflect::set(&dom_element, &prop_name.into(), prop_value).unwrap();
+            js_sys::Reflect::set(&dom_element, &(*prop_name).into(), prop_value).unwrap();
         }
 
         let event_listeners = Self::convert_event_listeners_from_vdom(run_update, vdom.event_listeners);
@@ -73,7 +73,7 @@ impl Element {
             self.props.retain(|old_prop_name, _| {
                 if !new_vdom.props.contains_key(old_prop_name) {
                     // TODO: deal with error properly
-                    js_sys::Reflect::delete_property(&self.dom_element, &old_prop_name.into()).unwrap();
+                    js_sys::Reflect::delete_property(&self.dom_element, &(*old_prop_name).into()).unwrap();
                     false
                 } else {
                     true

@@ -25,7 +25,7 @@ impl<Data> Widget<Data> for TestRect {
         // TODO: sizes in other units
         vdom::Element {
             type_: vdom::ElementType::Div,
-            props: vec![("style".to_string(), format!("width: {}px; height: {}px; color: {}", self.size.x, self.size.y, self.color.to_css_color()).into())].into_iter().collect(),
+            props: vec![("style", format!("width: {}px; height: {}px; color: {}", self.size.x, self.size.y, self.color.to_css_color()).into())].into_iter().collect(),
             event_listeners: Vec::new(),
             children: Vec::new(),
         }
