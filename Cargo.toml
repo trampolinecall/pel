@@ -14,6 +14,7 @@ console_error_panic_hook = "0.1.7"
 wasm-bindgen = "0.2"
 web-sys = {version = "0.3.65", features = ["console", "Window", "Document", "Element", "Text", "Node", "NodeList", "KeyboardEvent", "PointerEvent"]}
 lazy_static = "1.4.0"
+parse-macros = "0.1.0"
 
 [lib]
 crate-type = ["cdylib"]

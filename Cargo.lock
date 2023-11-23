@@ -135,6 +135,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd8b5dd2ae5ed71462c540258bedcb51965123ad7e7ccf4b9a8cafaa4a63576d"
 
 [[package]]
+name = "parse-generics-shim"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4adf4245783dfc1565c6e9740b0946d839d83bb6acef63b204ad7afff78ec31"
+
+[[package]]
+name = "parse-macros"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "558d2c65f8d579cc45fd35a5d96a70e0625818274564074554aaf95de58799eb"
+dependencies = [
+ "parse-generics-shim",
+ "rustc_version",
+]
+
+[[package]]
 name = "pel"
 version = "0.1.0"
 dependencies = [
@@ -144,6 +160,7 @@ dependencies = [
  "lazy_static",
  "line-span",
  "num-bigint",
+ "parse-macros",
  "wasm-bindgen",
  "web-sys",
 ]
@@ -197,6 +214,21 @@ checksum = "5267fca4496028628a95160fc423a33e8b2e6af8a5302579e322e4b520293cae"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "rustc_version"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c5f5376ea5e30ce23c03eb77cbe4962b988deead10910c372b226388b594c084"
+dependencies = [
+ "semver",
+]
+
+[[package]]
+name = "semver"
+version = "0.1.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4f410fedcf71af0345d7607d246e7ad15faaadd49d240ee3b24e5dc21a820ac"
 
 [[package]]
 name = "syn"
